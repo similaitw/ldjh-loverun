@@ -24,3 +24,6 @@
 
 # Vercel
 .vercel
+
+#.local.env
+.local.env
