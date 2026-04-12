@@ -1,0 +1,1415 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { db } from './lib/firebase'
+import {
+  collection, doc, onSnapshot,
+  setDoc, deleteDoc, writeBatch
+} from 'firebase/firestore'
+
+// 依結束時間產生時段列表（08:00 起，每5分鐘）
+const generateTimeSlots = (endHour = 16) => {
+  const slots = []
+  for (let hour = 8; hour < endHour; hour++) {
+    for (let minute = 0; minute < 60; minute += 5) {
+      slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
+    }
+  }
+  return slots
+}
+
+// 固定節課區塊（08:00–16:10）
+const BASE_BLOCKS = [
+  { type: 'free',   label: '課前',   start: '08:00', end: '08:20' },
+  { type: 'period', label: '第一節', start: '08:20', end: '09:05' },
+  { type: 'break',  label: '下課',   start: '09:05', end: '09:15' },
+  { type: 'period', label: '第二節', start: '09:15', end: '10:00' },
+  { type: 'break',  label: '下課',   start: '10:00', end: '10:10' },
+  { type: 'period', label: '第三節', start: '10:10', end: '10:55' },
+  { type: 'break',  label: '下課',   start: '10:55', end: '11:05' },
+  { type: 'period', label: '第四節', start: '11:05', end: '11:50' },
+  { type: 'meal',   label: '午餐',   start: '11:50', end: '12:30' },
+  { type: 'rest',   label: '午休',   start: '12:30', end: '13:30' },
+  { type: 'period', label: '第五節', start: '13:30', end: '14:15' },
+  { type: 'break',  label: '下課',   start: '14:15', end: '14:25' },
+  { type: 'period', label: '第六節', start: '14:25', end: '15:10' },
+  { type: 'break',  label: '下課',   start: '15:10', end: '15:25' },
+  { type: 'period', label: '第七節', start: '15:25', end: '16:10' },
+]
+
+// 依結束時間動態產生完整區塊列表（16:10 後補預備時段）
+const buildTimeBlocks = (endHour = 16) => {
+  if (endHour <= 16) return BASE_BLOCKS
+  const extra = []
+  // 16:10 之後到 endHour，每小時一個預備時段區塊
+  for (let h = 16; h < endHour; h++) {
+    const start = h === 16 ? '16:10' : `${h.toString().padStart(2,'0')}:00`
+    const end   = `${(h + 1).toString().padStart(2,'0')}:00`
+    extra.push({ type: 'extra', label: '預備', start, end })
+  }
+  return [...BASE_BLOCKS, ...extra]
+}
+
+// 取某區塊內所有 5 分鐘格（動態 slots）
+const getSlotsInBlock = (block, allSlots) =>
+  allSlots.filter(t => t >= block.start && t < block.end)
+
+// 依小時分組（保留，供其他地方使用）
+const groupByHour = (slots) => {
+  const map = new Map()
+  slots.forEach(t => {
+    const h = t.split(':')[0]
+    if (!map.has(h)) map.set(h, [])
+    map.get(h).push(t)
+  })
+  return map
+}
+
+const getCurrentTime = () => {
+  const now = new Date()
+  return `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`
+}
+const getCurrentTimeDisplay = () => new Date().toLocaleTimeString('zh-TW', { hour12: false })
+
+// 產生 token（8位隨機英數）
+const genToken = () => Math.random().toString(36).slice(2, 10).toUpperCase()
+
+const BEEP_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEfAzuM1O/1dy0FIHfI7NyOPggXZbjmqqtVFgw+ltv7w3QpBSmBzvHYhTZJQJ7Y8LlqHAY3kNTv1XIqBSl8xuzcjTwIC2m06vKVVQwNUKzlmn7tBA=='
+
+const MAX_PER_SLOT = 2
+
+export default function LoveRunTracker() {
+  const [participants, setParticipants] = useState([])
+  const [schedules, setSchedules] = useState([])
+  const [lapRecords, setLapRecords] = useState([])
+  // signups: { id, name, token, slots: ['08:00','08:05',...], note, createdAt }
+  const [signups, setSignups] = useState([])
+  const [eventName, setEventName] = useState('羅東愛心路跑')
+  const [activeTab, setActiveTab] = useState('signup')
+  const [currentParticipant, setCurrentParticipant] = useState('')
+  const [currentSchedule, setCurrentSchedule] = useState('')
+  const [currentTime, setCurrentTime] = useState('')
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  // 報名流程狀態
+  const [signupStep, setSignupStep] = useState('name') // 'name' | 'grid' | 'done'
+  const [signupNameInput, setSignupNameInput] = useState('')
+  const [signupSelectedSlots, setSignupSelectedSlots] = useState([]) // 本次選擇的時段
+  const [signupToken, setSignupToken] = useState('')        // 完成後的 token
+  const [signupDoneToken, setSignupDoneToken] = useState('') // 顯示給用戶的 token
+
+  // 修改模式：從 URL token 進入
+  const [editToken, setEditToken] = useState(null)
+  const [editRecord, setEditRecord] = useState(null)
+
+  // 參加者管理
+  const [newParticipantName, setNewParticipantName] = useState('')
+  const [bulkParticipants, setBulkParticipants] = useState('')
+  const [editingParticipant, setEditingParticipant] = useState(null)
+  const [editParticipantName, setEditParticipantName] = useState('')
+
+  // 時段管理
+  const [newSchedule, setNewSchedule] = useState({ class: '', time: '08:00', duration: 30 })
+  const [editingSchedule, setEditingSchedule] = useState(null)
+
+  // 管理
+  const [editingEventName, setEditingEventName] = useState(false)
+  const [tempEventName, setTempEventName] = useState('')
+  const [extraEndHour, setExtraEndHour] = useState(16)  // 活動結束時間（小時）
+  const [adminUnlocked, setAdminUnlocked] = useState(false)
+  const [adminPwInput, setAdminPwInput] = useState('')
+  const [adminPwError, setAdminPwError] = useState(false)
+  const ADMIN_PASSWORD = 'ltjh@9542075'
+
+  // 管理頁報名視窗
+  const [adminGridToken, setAdminGridToken] = useState(null)   // 正在管理的 token
+  const [adminGridSlots, setAdminGridSlots] = useState([])     // 暫存修改中的時段
+  const [adminViewMode, setAdminViewMode] = useState('person') // 'person' | 'slot'
+
+  const audioRef = useRef(null)
+  const displayRef = useRef(null)
+
+  // ── 本地資料（localStorage） ──
+  useEffect(() => {
+    try {
+      const p = localStorage.getItem('loverun_participants')
+      const sc = localStorage.getItem('loverun_schedules')
+      const lr = localStorage.getItem('loverun_lapRecords')
+      if (p) setParticipants(JSON.parse(p))
+      if (sc) setSchedules(JSON.parse(sc))
+      if (lr) setLapRecords(JSON.parse(lr))
+    } catch (e) {}
+  }, [])
+
+  useEffect(() => { localStorage.setItem('loverun_participants', JSON.stringify(participants)) }, [participants])
+  useEffect(() => { localStorage.setItem('loverun_schedules', JSON.stringify(schedules)) }, [schedules])
+  useEffect(() => { localStorage.setItem('loverun_lapRecords', JSON.stringify(lapRecords)) }, [lapRecords])
+
+  // ── Firestore 即時監聽：報名資料 ──
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'signups'), (snapshot) => {
+      const data = snapshot.docs.map(d => d.data())
+      setSignups(data)
+    })
+    return () => unsub()
+  }, [])
+
+  // ── Firestore 即時監聽：設定（活動名稱、結束時間） ──
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'main'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data()
+        if (data.eventName) setEventName(data.eventName)
+        if (data.extraEndHour) setExtraEndHour(data.extraEndHour)
+      }
+    })
+    return () => unsub()
+  }, [])
+
+  // ── 寫回 Firestore：活動名稱 ──
+  const saveEventName = async (name) => {
+    setEventName(name)
+    await setDoc(doc(db, 'settings', 'main'), { eventName: name }, { merge: true })
+  }
+
+  // ── 寫回 Firestore：結束時間 ──
+  const saveExtraEndHour = async (h) => {
+    setExtraEndHour(h)
+    await setDoc(doc(db, 'settings', 'main'), { extraEndHour: h }, { merge: true })
+  }
+
+  // ── 從 URL 讀取 token（修改模式）──
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const t = params.get('token')
+    if (t) {
+      setEditToken(t)
+      setActiveTab('signup')
+    }
+  }, [])
+
+  // token 有值時找對應記錄
+  useEffect(() => {
+    if (!editToken) { setEditRecord(null); return }
+    const rec = signups.find(s => s.token === editToken)
+    if (rec) {
+      setEditRecord(rec)
+      setSignupNameInput(rec.name)
+      setSignupSelectedSlots([...rec.slots])
+      setSignupStep('grid')
+    } else {
+      setEditRecord(null)
+    }
+  }, [editToken, signups])
+
+  // ── 時鐘 ──
+  useEffect(() => {
+    setCurrentTime(getCurrentTimeDisplay())
+    const t = setInterval(() => setCurrentTime(getCurrentTimeDisplay()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  // ── 快捷鍵 ──
+  useEffect(() => {
+    const h = (e) => {
+      if (activeTab === 'recording' && (e.code === 'Space' || e.code === 'Enter') && currentParticipant && currentSchedule) {
+        e.preventDefault(); recordLap()
+      }
+    }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [activeTab, currentParticipant, currentSchedule, lapRecords, schedules])
+
+  const playBeep = () => { if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play().catch(() => {}) } }
+
+  // ══════════════════════════════
+  // 報名邏輯
+  // ══════════════════════════════
+
+  // 取得某時段的所有登記（不含正在修改的自己）
+  const getSlotSignups = useCallback((slot) => {
+    return signups.filter(s => s.slots.includes(slot) && s.token !== editToken)
+  }, [signups, editToken])
+
+  // 時段格子狀態
+  const slotStatus = useCallback((slot) => {
+    const count = getSlotSignups(slot).length
+    if (count >= MAX_PER_SLOT) return 'full'
+    if (count === 1) return 'one'
+    return 'empty'
+  }, [getSlotSignups])
+
+  // 點擊時段格子
+  const toggleSlot = (slot) => {
+    const status = slotStatus(slot)
+    const alreadySelected = signupSelectedSlots.includes(slot)
+    if (status === 'full' && !alreadySelected) return // 已滿且不是自己已選的
+    setSignupSelectedSlots(prev =>
+      alreadySelected ? prev.filter(s => s !== slot) : [...prev, slot]
+    )
+  }
+
+  // 提交報名
+  const submitSignup = async () => {
+    const name = signupNameInput.trim()
+    if (!name) { alert('請輸入姓名！'); return }
+    if (signupSelectedSlots.length === 0) { alert('請至少選擇一個時段！'); return }
+
+    if (editRecord) {
+      // 修改模式：更新既有記錄
+      await setDoc(doc(db, 'signups', editToken), { ...editRecord, name, slots: [...signupSelectedSlots] })
+      setSignupDoneToken(editToken)
+    } else {
+      // 新增
+      const token = genToken()
+      const record = { id: Date.now(), name, token, slots: [...signupSelectedSlots], createdAt: Date.now() }
+      await setDoc(doc(db, 'signups', token), record)
+      setSignupDoneToken(token)
+    }
+    setSignupStep('done')
+  }
+
+  // 取消修改模式
+  const cancelEdit = () => {
+    setEditToken(null)
+    setEditRecord(null)
+    setSignupStep('name')
+    setSignupNameInput('')
+    setSignupSelectedSlots([])
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('token')
+      window.history.replaceState({}, '', url)
+    }
+  }
+
+  // 刪除登記
+  const deleteSignup = async (token) => {
+    if (!confirm('確定要取消此登記？')) return
+    await deleteDoc(doc(db, 'signups', token))
+    cancelEdit()
+  }
+
+  // 取得修改連結
+  const getEditLink = (token) => {
+    if (typeof window === 'undefined') return ''
+    const url = new URL(window.location.href)
+    url.searchParams.set('token', token)
+    return url.toString()
+  }
+
+  // 複製連結
+  const copyLink = (token) => {
+    const link = getEditLink(token)
+    navigator.clipboard.writeText(link).then(() => alert('連結已複製！'))
+  }
+
+  // 開始新報名
+  const startNewSignup = () => {
+    setSignupStep('name')
+    setSignupNameInput('')
+    setSignupSelectedSlots([])
+    setSignupDoneToken('')
+    setEditToken(null)
+    setEditRecord(null)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('token')
+      window.history.replaceState({}, '', url)
+    }
+  }
+
+  // ══════════════════════════════
+  // 參加者管理
+  // ══════════════════════════════
+  const addParticipant = () => {
+    const name = newParticipantName.trim()
+    if (!name) return
+    if (participants.includes(name)) { alert(`「${name}」已存在！`); return }
+    setParticipants([...participants, name])
+    setNewParticipantName('')
+  }
+
+  const addBulkParticipants = () => {
+    const names = bulkParticipants.split(/[,，\n]/).map(n => n.trim()).filter(Boolean)
+    const duplicates = [], toAdd = []
+    names.forEach(name => {
+      if (participants.includes(name)) duplicates.push(name)
+      else if (!toAdd.includes(name)) toAdd.push(name)
+    })
+    if (toAdd.length > 0) setParticipants([...participants, ...toAdd])
+    setBulkParticipants('')
+    if (duplicates.length > 0) alert(`以下名稱已存在，已略過：${duplicates.join('、')}`)
+    else alert(`成功新增 ${toAdd.length} 位參加者！`)
+  }
+
+  const deleteParticipant = (name) => {
+    if (!confirm(`確定要刪除「${name}」嗎？`)) return
+    setParticipants(participants.filter(p => p !== name))
+  }
+
+  const saveEditParticipant = () => {
+    const newName = editParticipantName.trim()
+    if (!newName) return
+    if (participants.includes(newName) && newName !== editingParticipant) { alert(`「${newName}」已存在！`); return }
+    setParticipants(participants.map(p => p === editingParticipant ? newName : p))
+    setLapRecords(lapRecords.map(r => r.participant === editingParticipant ? { ...r, participant: newName } : r))
+    setSignups(signups.map(s => s.name === editingParticipant ? { ...s, name: newName } : s))
+    setEditingParticipant(null); setEditParticipantName('')
+  }
+
+  // ══════════════════════════════
+  // 時段管理
+  // ══════════════════════════════
+  const addSchedule = () => {
+    if (!newSchedule.class.trim()) { alert('請輸入班級／活動名稱！'); return }
+    setSchedules([...schedules, { id: Date.now(), class: newSchedule.class.trim(), time: newSchedule.time, duration: parseInt(newSchedule.duration) || 30 }])
+    setNewSchedule({ class: '', time: '08:00', duration: 30 })
+  }
+
+  const deleteSchedule = (id) => {
+    if (!confirm('確定要刪除此時段嗎？')) return
+    setSchedules(schedules.filter(s => s.id !== id))
+  }
+
+  const saveEditSchedule = () => {
+    if (!editingSchedule.class.trim()) return
+    setSchedules(schedules.map(s => s.id === editingSchedule.id ? editingSchedule : s))
+    setEditingSchedule(null)
+  }
+
+  // ══════════════════════════════
+  // 圈數記錄
+  // ══════════════════════════════
+  const recordLap = useCallback(() => {
+    if (!currentParticipant || !currentSchedule) return
+    const schedule = schedules.find(s => s.id.toString() === currentSchedule)
+    setLapRecords(prev => [...prev, {
+      id: Date.now(), participant: currentParticipant,
+      scheduleId: parseInt(currentSchedule), className: schedule?.class || '',
+      time: getCurrentTime(), timestamp: Date.now(),
+    }])
+    playBeep()
+  }, [currentParticipant, currentSchedule, schedules])
+
+  const deleteLapRecord = (id) => setLapRecords(lapRecords.filter(r => r.id !== id))
+
+  // ══════════════════════════════
+  // 統計
+  // ══════════════════════════════
+  const getParticipantStats = () => {
+    const stats = {}
+    lapRecords.forEach(r => {
+      if (!stats[r.participant]) stats[r.participant] = { name: r.participant, totalLaps: 0, classes: new Set() }
+      stats[r.participant].totalLaps++
+      stats[r.participant].classes.add(r.className)
+    })
+    return Object.values(stats).map(s => ({ ...s, classes: Array.from(s.classes).join('、') }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'))
+  }
+
+  const getCurrentParticipantLaps = () => {
+    if (!currentParticipant || !currentSchedule) return 0
+    return lapRecords.filter(r => r.participant === currentParticipant && r.scheduleId.toString() === currentSchedule).length
+  }
+
+  // ══════════════════════════════
+  // CSV 匯出
+  // ══════════════════════════════
+  const exportResults = () => {
+    const s = getParticipantStats()
+    const csv = [['姓名','總圈數','參與時段'].join(','), ...s.map(r => [r.name, r.totalLaps, r.classes].join(','))].join('\n')
+    const blob = new Blob(['\ufeff'+csv], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = `${eventName}_統計_${new Date().toISOString().split('T')[0]}.csv`; a.click()
+  }
+
+  const exportSignups = () => {
+    const rows = []
+    signups.forEach(s => s.slots.forEach(slot => rows.push([slot, s.name, s.token])))
+    rows.sort((a, b) => a[0].localeCompare(b[0]))
+    const csv = [['時段','姓名','修改碼'].join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob(['\ufeff'+csv], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = `${eventName}_報名_${new Date().toISOString().split('T')[0]}.csv`; a.click()
+  }
+
+  // ══════════════════════════════
+  // 全螢幕
+  // ══════════════════════════════
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) { displayRef.current?.requestFullscreen(); setIsFullscreen(true) }
+    else { document.exitFullscreen(); setIsFullscreen(false) }
+  }
+  useEffect(() => {
+    const h = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', h)
+    return () => document.removeEventListener('fullscreenchange', h)
+  }, [])
+
+  // ══════════════════════════════
+  // 衍生資料
+  // ══════════════════════════════
+  const TIME_SLOTS = generateTimeSlots(extraEndHour)
+  const TIME_BLOCKS = buildTimeBlocks(extraEndHour)
+
+  const stats = getParticipantStats()
+  const hourGroups = groupByHour(TIME_SLOTS)
+
+  // 時段格子顏色樣式
+  const slotCellClass = (slot) => {
+    const selected = signupSelectedSlots.includes(slot)
+    const status = slotStatus(slot)
+    if (selected) return 'bg-blue-500 text-white border-blue-600 ring-2 ring-blue-300'
+    if (status === 'full') return 'bg-red-100 border-red-300 text-red-600 cursor-not-allowed'
+    if (status === 'one') return 'bg-orange-100 border-orange-300 text-orange-700 cursor-pointer hover:bg-orange-200'
+    return 'bg-green-50 border-green-300 text-green-700 cursor-pointer hover:bg-green-100'
+  }
+
+  const TABS = [
+    { key: 'signup', label: '📋 報名登記' },
+    { key: 'stats', label: '📊 統計資料' },
+    { key: 'display', label: '📺 展示' },
+    { key: 'admin', label: '⚙️ 管理' },
+  ]
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-green-100">
+      <audio ref={audioRef} preload="auto"><source src={BEEP_SOUND} type="audio/wav" /></audio>
+
+      {/* 標題列 */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button onClick={() => setActiveTab('signup')} className="text-left hover:opacity-80 transition-opacity">
+            <h1 className="text-xl font-bold text-blue-700">🏃‍♀️ {eventName}</h1>
+            <p className="text-xs text-gray-500">圈數記錄系統</p>
+          </button>
+          <div className="text-right">
+            <div className="text-2xl font-mono font-bold text-gray-700">{currentTime}</div>
+            <div className="text-xs text-gray-400">共 {lapRecords.length} 筆記錄</div>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto px-4 flex gap-1 pb-2 overflow-x-auto">
+          {TABS.map(tab => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                activeTab === tab.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}>{tab.label}</button>
+          ))}
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 py-6">
+
+        {/* ═══════════════════════════════
+            報名登記
+        ═══════════════════════════════ */}
+        {activeTab === 'signup' && (
+          <div>
+            {/* 修改模式提示橫幅 */}
+            {editToken && editRecord && (
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div className="text-sm text-blue-700">
+                  ✏️ 修改模式：<span className="font-bold">{editRecord.name}</span> 的登記
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => deleteSignup(editToken)} className="text-xs bg-red-50 text-red-500 border border-red-200 px-3 py-1 rounded-lg hover:bg-red-100">取消登記</button>
+                  <button onClick={cancelEdit} className="text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-lg hover:bg-gray-200">離開修改</button>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 1：輸入姓名 ── */}
+            {signupStep === 'name' && !editToken && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md mx-auto mt-8">
+                <h2 className="text-xl font-bold text-gray-800 mb-1">時段登記</h2>
+                <p className="text-sm text-gray-500 mb-5">輸入姓名後，即可選擇想登記的時段</p>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={signupNameInput}
+                    onChange={e => setSignupNameInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && signupNameInput.trim()) setSignupStep('grid') }}
+                    placeholder="請輸入您的姓名..."
+                    list="participant-list"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-blue-400"
+                    autoFocus
+                  />
+                  <datalist id="participant-list">
+                    {participants.map(n => <option key={n} value={n} />)}
+                  </datalist>
+                  <button
+                    onClick={() => { if (signupNameInput.trim()) setSignupStep('grid') }}
+                    disabled={!signupNameInput.trim()}
+                    className="w-full bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition-colors"
+                  >選擇時段 →</button>
+                </div>
+
+                {/* 已有登記可查詢 */}
+                {signups.length > 0 && (
+                  <div className="mt-6 pt-5 border-t">
+                    <p className="text-xs text-gray-400 mb-2">已有登記？輸入修改碼查詢</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="修改碼（8碼）"
+                        maxLength={8}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            const t = e.target.value.trim().toUpperCase()
+                            const rec = signups.find(s => s.token === t)
+                            if (rec) { setEditToken(t); setEditRecord(rec); setSignupNameInput(rec.name); setSignupSelectedSlots([...rec.slots]); setSignupStep('grid') }
+                            else alert('找不到此修改碼')
+                          }
+                        }}
+                        className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 font-mono uppercase"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── STEP 2：時間表格（浮動彈窗） ── */}
+            {signupStep === 'grid' && (
+              <div className="fixed inset-0 z-40 bg-black/50 flex items-start justify-center overflow-y-auto py-4 px-2">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl">
+                  {/* 彈窗標題 */}
+                  <div className="sticky top-0 bg-white rounded-t-2xl px-5 py-4 border-b flex items-center justify-between z-10">
+                    <div>
+                      <span className="font-bold text-gray-800 text-lg">{signupNameInput}</span>
+                      <span className="text-gray-500 text-sm ml-2">選擇時段</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {/* 圖例 */}
+                      <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>1人</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>已滿</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>已選</span>
+                      </div>
+                      <button onClick={() => { setSignupStep('name'); setSignupSelectedSlots([]) }} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+                    </div>
+                  </div>
+
+                  {/* 已選時段提示 */}
+                  {signupSelectedSlots.length > 0 && (
+                    <div className="mx-5 mt-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 flex flex-wrap gap-2 items-center">
+                      <span className="text-xs text-blue-500 mr-1">已選：</span>
+                      {[...signupSelectedSlots].sort().map(s => (
+                        <span key={s} className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                          {s}
+                          <button onClick={() => toggleSlot(s)} className="hover:text-blue-200">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 時間表：完整時間軸，逐區塊顯示 */}
+                  <div className="p-4 space-y-1.5">
+                    {TIME_BLOCKS.map((block) => {
+                      const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
+                      const anySelected = blockSlots.some(s => signupSelectedSlots.includes(s))
+
+                      // 左側標籤樣式依區塊類型
+                      const labelStyle = {
+                        period: anySelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300',
+                        free:   anySelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-gray-100 text-gray-500 border-gray-200',
+                        break:  anySelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-gray-50 text-gray-400 border-gray-200',
+                        meal:   anySelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-amber-50 text-amber-600 border-amber-200',
+                        rest:   anySelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-purple-50 text-purple-500 border-purple-200',
+                        extra:  anySelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-teal-50 text-teal-600 border-teal-200',
+                      }
+                      const iconMap = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴', extra: '⏰' }
+
+                      return (
+                        <div key={block.label + block.start}
+                          className={`flex items-start gap-2 px-2 py-2 rounded-xl transition-colors ${
+                            anySelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                          }`}>
+                          {/* 左側標籤 */}
+                          <div className={`shrink-0 w-16 rounded-lg border text-center py-1.5 leading-tight ${labelStyle[block.type]}`}>
+                            {iconMap[block.type] && (
+                              <div className="text-sm leading-none mb-0.5">{iconMap[block.type]}</div>
+                            )}
+                            <div className="text-xs font-bold">{block.label}</div>
+                            <div className="text-[9px] opacity-60 mt-0.5">{block.start}</div>
+                            <div className="text-[9px] opacity-60">–{block.end}</div>
+                          </div>
+                          {/* 右側格子 */}
+                          <div className="flex flex-wrap gap-1 flex-1">
+                            {blockSlots.map(slot => {
+                              const count = getSlotSignups(slot).length
+                              const selected = signupSelectedSlots.includes(slot)
+                              const full = count >= MAX_PER_SLOT && !selected
+                              const names = getSlotSignups(slot).map(s => s.name)
+                              return (
+                                <button
+                                  key={slot}
+                                  onClick={() => !full && toggleSlot(slot)}
+                                  title={names.length > 0 ? `${slot}：${names.join('、')}` : slot}
+                                  className={`border rounded-lg text-center transition-all ${slotCellClass(slot)}`}
+                                  style={{ width: '46px', height: '46px' }}
+                                >
+                                  <div className="text-[11px] font-bold leading-none">{slot}</div>
+                                  <div className="flex justify-center gap-0.5 mt-1.5">
+                                    {Array.from({ length: MAX_PER_SLOT }).map((_, i) => (
+                                      <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${
+                                        i < count
+                                          ? (selected ? 'bg-white' : count >= MAX_PER_SLOT ? 'bg-red-400' : 'bg-orange-400')
+                                          : (selected ? 'bg-blue-300' : 'bg-gray-200')
+                                      }`}/>
+                                    ))}
+                                  </div>
+                                  {names.length > 0 && (
+                                    <div className="text-[8px] leading-tight mt-0.5 truncate px-0.5 opacity-80">
+                                      {names.join(' ')}
+                                    </div>
+                                  )}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* 底部操作列 */}
+                  <div className="sticky bottom-0 bg-white rounded-b-2xl border-t px-5 py-4 flex items-center justify-between gap-3">
+                    <div className="text-sm text-gray-500">
+                      已選 <span className="font-bold text-blue-600">{signupSelectedSlots.length}</span> 個時段
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setSignupStep('name'); setSignupSelectedSlots([]) }}
+                        className="px-4 py-2 rounded-xl border text-sm text-gray-600 hover:bg-gray-50"
+                      >取消</button>
+                      <button
+                        onClick={submitSignup}
+                        disabled={signupSelectedSlots.length === 0}
+                        className="px-6 py-2 rounded-xl bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+                      >{editRecord ? '確認修改' : '確認登記'}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 3：完成 ── */}
+            {signupStep === 'done' && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md mx-auto mt-8 text-center">
+                <div className="text-4xl mb-3">✅</div>
+                <h2 className="text-xl font-bold text-gray-800 mb-1">
+                  {editRecord ? '修改完成！' : '登記完成！'}
+                </h2>
+                <p className="text-sm text-gray-500 mb-5">
+                  {signupNameInput}，已完成時段登記
+                </p>
+
+                {/* 修改碼 */}
+                <div className="bg-gray-50 border rounded-xl p-4 mb-4">
+                  <div className="text-xs text-gray-500 mb-1">您的修改碼（請記下）</div>
+                  <div className="text-3xl font-mono font-bold text-blue-600 tracking-widest mb-3">{signupDoneToken}</div>
+                  <button
+                    onClick={() => copyLink(signupDoneToken)}
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700"
+                  >📋 複製修改連結</button>
+                  <div className="mt-2 text-xs text-gray-400 break-all">{getEditLink(signupDoneToken)}</div>
+                </div>
+
+                {/* 已選時段摘要 */}
+                <div className="text-left bg-blue-50 rounded-xl p-3 mb-4">
+                  <div className="text-xs text-blue-500 font-medium mb-2">已登記時段：</div>
+                  <div className="flex flex-wrap gap-1">
+                    {[...signupSelectedSlots].sort().map(s => (
+                      <span key={s} className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">{s}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <button onClick={startNewSignup} className="w-full border border-gray-200 text-gray-600 py-2 rounded-xl text-sm hover:bg-gray-50">
+                  繼續為其他人登記
+                </button>
+              </div>
+            )}
+
+            {/* ── 時段總覽（底部，step=name 時顯示）── */}
+            {signupStep === 'name' && !editToken && (
+              <div className="mt-6 bg-white rounded-xl shadow p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-bold text-gray-700">目前登記狀況總覽</h2>
+                  <button onClick={exportSignups} className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-200">📥 匯出報名表</button>
+                </div>
+                {/* 圖例 */}
+                <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>1人</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>已滿</span>
+                </div>
+                {/* 依 TIME_BLOCKS 軸呈現 */}
+                <div className="space-y-1.5">
+                  {TIME_BLOCKS.map((block) => {
+                    const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
+                    // 只顯示有登記的 block（若全空可跳過，但保留所有 block 方便對照）
+                    const labelStyle = {
+                      period: 'bg-white text-gray-700 border-gray-300',
+                      free:   'bg-gray-100 text-gray-500 border-gray-200',
+                      break:  'bg-gray-50 text-gray-400 border-gray-200',
+                      meal:   'bg-amber-50 text-amber-600 border-amber-200',
+                      rest:   'bg-purple-50 text-purple-500 border-purple-200',
+                      extra:  'bg-teal-50 text-teal-600 border-teal-200',
+                    }
+                    const iconMap = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴', extra: '⏰' }
+                    return (
+                      <div key={block.label + block.start} className="flex items-start gap-2 px-2 py-1.5 rounded-xl hover:bg-gray-50">
+                        {/* 左側標籤 */}
+                        <div className={`shrink-0 w-16 rounded-lg border text-center py-1.5 leading-tight ${labelStyle[block.type]}`}>
+                          {iconMap[block.type] && <div className="text-sm leading-none mb-0.5">{iconMap[block.type]}</div>}
+                          <div className="text-xs font-bold">{block.label}</div>
+                          <div className="text-[9px] opacity-60 mt-0.5">{block.start}</div>
+                          <div className="text-[9px] opacity-60">–{block.end}</div>
+                        </div>
+                        {/* 右側格子（唯讀） */}
+                        <div className="flex flex-wrap gap-1 flex-1">
+                          {blockSlots.map(slot => {
+                            const sgs = signups.filter(s => s.slots.includes(slot))
+                            const count = sgs.length
+                            const isFull = count >= MAX_PER_SLOT
+                            const isOne  = count === 1
+                            const cellCls = isFull
+                              ? 'bg-red-100 border-red-300 text-red-700'
+                              : isOne
+                              ? 'bg-orange-100 border-orange-300 text-orange-700'
+                              : 'bg-green-50 border-green-300 text-green-700'
+                            return (
+                              <div
+                                key={slot}
+                                title={sgs.length > 0 ? `${slot}：${sgs.map(s=>s.name).join('、')}` : slot}
+                                className={`border rounded-lg text-center ${cellCls}`}
+                                style={{ width: '46px', height: '46px' }}
+                              >
+                                <div className="text-[11px] font-bold leading-none pt-1">{slot}</div>
+                                <div className="flex justify-center gap-0.5 mt-1.5">
+                                  {Array.from({ length: MAX_PER_SLOT }).map((_, i) => (
+                                    <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${
+                                      i < count
+                                        ? (isFull ? 'bg-red-400' : 'bg-orange-400')
+                                        : 'bg-gray-200'
+                                    }`}/>
+                                  ))}
+                                </div>
+                                {sgs.length > 0 && (
+                                  <div className="text-[8px] leading-tight mt-0.5 truncate px-0.5 opacity-80">
+                                    {sgs.map(s=>s.name).join(' ')}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════
+            統計資料
+        ═══════════════════════════════ */}
+        {activeTab === 'stats' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              {[['總圈數', lapRecords.length, 'text-blue-600'], ['參加人數', stats.length, 'text-green-600'], ['登記時段數', signups.reduce((a,s)=>a+s.slots.length,0), 'text-purple-600']].map(([label, val, cls]) => (
+                <div key={label} className="bg-white rounded-xl shadow p-4 text-center">
+                  <div className="text-sm text-gray-500 mb-1">{label}</div>
+                  <div className={`text-3xl font-bold ${cls}`}>{val}</div>
+                </div>
+              ))}
+            </div>
+            {schedules.length > 0 && (
+              <div className="bg-white rounded-xl shadow p-4">
+                <h2 className="font-bold text-gray-700 mb-3">各時段圈數</h2>
+                <div className="space-y-2">
+                  {schedules.map(s => {
+                    const count = lapRecords.filter(r => r.scheduleId === s.id).length
+                    const max = Math.max(...schedules.map(ss => lapRecords.filter(r => r.scheduleId === ss.id).length), 1)
+                    return (
+                      <div key={s.id} className="flex items-center gap-3">
+                        <div className="w-14 text-sm text-gray-600 shrink-0">{s.time}</div>
+                        <div className="text-sm text-gray-700 w-20 shrink-0 truncate">{s.class}</div>
+                        <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                          <div className="bg-blue-400 h-4 rounded-full transition-all" style={{ width: `${(count/max)*100}%` }}/>
+                        </div>
+                        <div className="text-sm font-bold text-blue-600 w-8 text-right shrink-0">{count}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            <div className="bg-white rounded-xl shadow p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-bold text-gray-700">個人圈數統計</h2>
+                <button onClick={exportResults} className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700">📥 匯出 CSV</button>
+              </div>
+              {stats.length === 0 ? <p className="text-gray-400 text-sm">尚無記錄</p> : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b text-gray-500 text-left">
+                      <th className="pb-2 font-medium">姓名</th>
+                      <th className="pb-2 font-medium text-right">總圈數</th>
+                      <th className="pb-2 font-medium pl-4">參與時段</th>
+                    </tr></thead>
+                    <tbody>
+                      {stats.map(s => (
+                        <tr key={s.name} className="border-b last:border-0 hover:bg-gray-50">
+                          <td className="py-2 font-medium text-gray-800">{s.name}</td>
+                          <td className="py-2 text-right font-bold text-blue-600">{s.totalLaps}</td>
+                          <td className="py-2 pl-4 text-gray-400 text-xs">{s.classes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════
+            大螢幕展示
+        ═══════════════════════════════ */}
+        {activeTab === 'display' && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="font-bold text-gray-700">大螢幕展示模式</h2>
+              <button onClick={toggleFullscreen} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+                {isFullscreen ? '退出全螢幕' : '🖥️ 全螢幕'}
+              </button>
+            </div>
+            <div ref={displayRef} className={`bg-gray-900 rounded-xl text-white p-6 ${isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-y-auto' : ''}`}>
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl sm:text-4xl font-bold text-yellow-400">🏃‍♀️ {eventName}</h1>
+                <div className="text-right">
+                  <div className="text-3xl sm:text-5xl font-mono font-bold">{currentTime}</div>
+                  <div className="text-sm text-gray-400">總記錄 {lapRecords.length} 圈</div>
+                </div>
+              </div>
+              {stats.length === 0 ? (
+                <div className="text-center text-gray-500 py-16 text-xl">等待記錄中...</div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {stats.slice(0,15).map(s => (
+                    <div key={s.name} className="bg-gray-800 rounded-xl p-4 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xl sm:text-2xl font-bold truncate">{s.name}</div>
+                        <div className="text-xs text-gray-400 truncate">{s.classes}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-3xl sm:text-4xl font-bold text-green-400">{s.totalLaps}</div>
+                        <div className="text-xs text-gray-400">圈</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════
+            管理介面
+        ═══════════════════════════════ */}
+        {activeTab === 'admin' && !adminUnlocked && (
+          <div className="max-w-sm mx-auto mt-16 bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="text-4xl mb-4">🔒</div>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">管理員驗證</h2>
+            <p className="text-sm text-gray-400 mb-6">請輸入管理密碼</p>
+            <input
+              type="password"
+              value={adminPwInput}
+              onChange={e => { setAdminPwInput(e.target.value); setAdminPwError(false) }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
+                  else { setAdminPwError(true); setAdminPwInput('') }
+                }
+              }}
+              placeholder="輸入密碼..."
+              className={`w-full border-2 rounded-xl px-4 py-3 text-base text-center focus:outline-none mb-3 ${adminPwError ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-blue-400'}`}
+              autoFocus
+            />
+            {adminPwError && <p className="text-sm text-red-500 mb-3">密碼錯誤，請再試一次</p>}
+            <button
+              onClick={() => {
+                if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
+                else { setAdminPwError(true); setAdminPwInput('') }
+              }}
+              className="w-full bg-blue-600 text-white py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition-colors"
+            >進入管理</button>
+          </div>
+        )}
+
+        {activeTab === 'admin' && adminUnlocked && (
+          <div className="space-y-4">
+            {/* 登出按鈕 */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => { setAdminUnlocked(false); setAdminPwInput('') }}
+                className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+              >🔓 登出管理</button>
+            </div>
+            {/* 活動設定 */}
+            <div className="bg-white rounded-xl shadow p-4">
+              <h2 className="font-bold text-gray-700 mb-4">活動設定</h2>
+              <div className="space-y-4">
+                {/* 活動名稱 */}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-gray-500 shrink-0 w-20">活動名稱</label>
+                  {editingEventName ? (
+                    <>
+                      <input type="text" value={tempEventName} onChange={e => setTempEventName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') { saveEventName(tempEventName.trim() || eventName); setEditingEventName(false) } if (e.key === 'Escape') setEditingEventName(false) }}
+                        className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" autoFocus />
+                      <button onClick={() => { saveEventName(tempEventName.trim() || eventName); setEditingEventName(false) }} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">儲存</button>
+                      <button onClick={() => setEditingEventName(false)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">取消</button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 font-semibold text-gray-800">{eventName}</span>
+                      <button onClick={() => { setTempEventName(eventName); setEditingEventName(true) }} className="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-sm hover:bg-blue-100">✏️ 修改</button>
+                    </>
+                  )}
+                </div>
+
+                {/* 結束時間 */}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-gray-500 shrink-0 w-20">結束時間</label>
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="flex gap-1 flex-wrap">
+                      {[16, 17, 18, 19, 20].map(h => (
+                        <button
+                          key={h}
+                          onClick={() => saveExtraEndHour(h)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                            extraEndHour === h
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >{h}:00</button>
+                      ))}
+                    </div>
+                    {extraEndHour > 16 && (
+                      <span className="text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
+                        已延長至 {extraEndHour}:00，新增 {(extraEndHour - 16) * 12} 個時段
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 快速新增參加者 */}
+            <div className="bg-white rounded-xl shadow p-4">
+              <h2 className="font-bold text-gray-700 mb-3">快速新增參加者</h2>
+              <div className="flex gap-2 mb-2">
+                <input type="text" value={newParticipantName} onChange={e => setNewParticipantName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addParticipant()} placeholder="輸入姓名後按 Enter..."
+                  className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" autoFocus />
+                <button onClick={addParticipant} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 shrink-0">新增</button>
+              </div>
+              <textarea value={bulkParticipants} onChange={e => setBulkParticipants(e.target.value)}
+                placeholder="批次匯入：小明,小華,小美（逗號或換行分隔）" rows={2}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2" />
+              <button onClick={addBulkParticipants} className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-green-700">批次新增</button>
+              {participants.length > 0 && (
+                <div className="mt-3 pt-3 border-t">
+                  <div className="text-xs text-gray-400 mb-2">目前 {participants.length} 位參加者</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {participants.map(name => (
+                      <span key={name} className="flex items-center gap-1 bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
+                        {name}
+                        <button onClick={() => deleteParticipant(name)} className="text-gray-400 hover:text-red-500 leading-none">×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 時段安排 */}
+            <div className="bg-white rounded-xl shadow p-4">
+              <h2 className="font-bold text-gray-700 mb-3">時段安排（供圈數記錄用）</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">班級／活動名稱</label>
+                  <input type="text" value={newSchedule.class} onChange={e => setNewSchedule({...newSchedule, class: e.target.value})}
+                    placeholder="例：一年甲班"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">開始時間</label>
+                  <select value={newSchedule.time} onChange={e => setNewSchedule({...newSchedule, time: e.target.value})}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">時長（分鐘）</label>
+                  <input type="number" value={newSchedule.duration} onChange={e => setNewSchedule({...newSchedule, duration: e.target.value})}
+                    min={5} max={120} step={5}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                </div>
+              </div>
+              <button onClick={addSchedule} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">新增時段</button>
+              {schedules.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <div className="text-xs text-gray-500 font-medium">已安排時段（共 {schedules.length} 個）</div>
+                  {schedules.map(s => (
+                    <div key={s.id} className="border rounded-lg p-3 flex items-center justify-between gap-2">
+                      {editingSchedule?.id === s.id ? (
+                        <div className="flex-1 grid grid-cols-3 gap-2">
+                          <input type="text" value={editingSchedule.class} onChange={e => setEditingSchedule({...editingSchedule, class: e.target.value})}
+                            className="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                          <select value={editingSchedule.time} onChange={e => setEditingSchedule({...editingSchedule, time: e.target.value})}
+                            className="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
+                            {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                          <input type="number" value={editingSchedule.duration} onChange={e => setEditingSchedule({...editingSchedule, duration: parseInt(e.target.value)})}
+                            min={5} max={120} step={5}
+                            className="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                        </div>
+                      ) : (
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-800">{s.class}</span>
+                          <span className="ml-3 text-sm text-gray-500">{s.time}</span>
+                          <span className="ml-2 text-sm text-gray-400">{s.duration} 分鐘</span>
+                        </div>
+                      )}
+                      <div className="flex gap-2 shrink-0">
+                        {editingSchedule?.id === s.id ? (
+                          <><button onClick={saveEditSchedule} className="text-green-600 text-sm">✓ 儲存</button><button onClick={() => setEditingSchedule(null)} className="text-gray-400 text-sm">✕</button></>
+                        ) : (
+                          <><button onClick={() => setEditingSchedule({...s})} className="text-blue-400 hover:text-blue-600">✏️</button><button onClick={() => deleteSchedule(s.id)} className="text-red-400 hover:text-red-600">🗑️</button></>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 報名管理：依人名 / 依時段切換 */}
+            <div className="bg-white rounded-xl shadow p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <h2 className="font-bold text-gray-700">報名管理</h2>
+                  {/* 切換檢視模式 */}
+                  <div className="flex rounded-lg border overflow-hidden text-xs">
+                    <button
+                      onClick={() => setAdminViewMode('person')}
+                      className={`px-3 py-1.5 font-medium transition-colors ${adminViewMode === 'person' ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >依人名</button>
+                    <button
+                      onClick={() => setAdminViewMode('slot')}
+                      className={`px-3 py-1.5 font-medium transition-colors border-l ${adminViewMode === 'slot' ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >依時段</button>
+                  </div>
+                </div>
+                <button onClick={exportSignups} className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-200">📥 匯出</button>
+              </div>
+
+              {signups.length === 0 ? <p className="text-gray-400 text-sm">尚無登記</p> : (
+                <>
+                  {/* ── 依人名 ── */}
+                  {adminViewMode === 'person' && (
+                    <div className="space-y-2">
+                      {signups.map(s => (
+                        <div key={s.id} className="border rounded-lg p-3 flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <button
+                              onClick={() => { setAdminGridToken(s.token); setAdminGridSlots([...s.slots]) }}
+                              className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                            >{s.name}</button>
+                            <span className="text-xs text-gray-400 ml-2 font-mono">{s.token}</span>
+                            <div className="text-xs text-gray-400 ml-1 inline">{s.slots.length} 個時段</div>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {[...s.slots].sort().map(slot => (
+                                <span key={slot} className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded">{slot}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <button
+                            onClick={async () => { if (confirm(`確定要刪除「${s.name}」的登記？`)) await deleteDoc(doc(db, 'signups', s.token)) }}
+                            className="text-red-400 hover:text-red-600 shrink-0">🗑️</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── 依時段（TIME_BLOCKS 軸）── */}
+                  {adminViewMode === 'slot' && (
+                    <div className="space-y-1.5">
+                      {TIME_BLOCKS.map((block) => {
+                        const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
+                        const labelStyle = {
+                          period: 'bg-white text-gray-700 border-gray-300',
+                          free:   'bg-gray-100 text-gray-500 border-gray-200',
+                          break:  'bg-gray-50 text-gray-400 border-gray-200',
+                          meal:   'bg-amber-50 text-amber-600 border-amber-200',
+                          rest:   'bg-purple-50 text-purple-500 border-purple-200',
+                          extra:  'bg-teal-50 text-teal-600 border-teal-200',
+                        }
+                        const iconMap = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴', extra: '⏰' }
+                        return (
+                          <div key={block.label + block.start} className="flex items-start gap-2 px-2 py-1.5 rounded-xl hover:bg-gray-50">
+                            {/* 左側標籤 */}
+                            <div className={`shrink-0 w-16 rounded-lg border text-center py-1.5 leading-tight ${labelStyle[block.type]}`}>
+                              {iconMap[block.type] && <div className="text-sm leading-none mb-0.5">{iconMap[block.type]}</div>}
+                              <div className="text-xs font-bold">{block.label}</div>
+                              <div className="text-[9px] opacity-60 mt-0.5">{block.start}</div>
+                              <div className="text-[9px] opacity-60">–{block.end}</div>
+                            </div>
+                            {/* 右側格子，可點擊姓名開啟編輯 */}
+                            <div className="flex flex-wrap gap-1 flex-1">
+                              {blockSlots.map(slot => {
+                                const sgs = signups.filter(s => s.slots.includes(slot))
+                                const count = sgs.length
+                                const isFull = count >= MAX_PER_SLOT
+                                const isOne  = count === 1
+                                const cellCls = isFull
+                                  ? 'bg-red-100 border-red-300 text-red-700'
+                                  : isOne
+                                  ? 'bg-orange-100 border-orange-300 text-orange-700'
+                                  : 'bg-green-50 border-green-300 text-green-600'
+                                return (
+                                  <div
+                                    key={slot}
+                                    className={`border rounded-lg text-center ${cellCls}`}
+                                    style={{ width: '60px', minHeight: '46px' }}
+                                  >
+                                    <div className="text-[11px] font-bold leading-none pt-1">{slot}</div>
+                                    <div className="flex justify-center gap-0.5 mt-1">
+                                      {Array.from({ length: MAX_PER_SLOT }).map((_, i) => (
+                                        <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${
+                                          i < count ? (isFull ? 'bg-red-400' : 'bg-orange-400') : 'bg-gray-200'
+                                        }`}/>
+                                      ))}
+                                    </div>
+                                    {sgs.length > 0 && (
+                                      <div className="mt-0.5 px-0.5 pb-1">
+                                        {sgs.map(s => (
+                                          <button
+                                            key={s.id}
+                                            onClick={() => { setAdminGridToken(s.token); setAdminGridSlots([...s.slots]) }}
+                                            className="block w-full text-[9px] leading-tight truncate hover:underline font-medium"
+                                            title={`點擊編輯 ${s.name} 的登記`}
+                                          >{s.name}</button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* 管理頁浮動時間軸視窗 */}
+            {adminGridToken && (() => {
+              const rec = signups.find(s => s.token === adminGridToken)
+              if (!rec) return null
+
+              // 管理員版的格子顏色（排除自己已選，計算他人數量）
+              const adminSlotStatus = (slot) => {
+                const othersCount = signups.filter(s => s.token !== adminGridToken && s.slots.includes(slot)).length
+                if (adminGridSlots.includes(slot)) return 'selected'
+                if (othersCount >= MAX_PER_SLOT) return 'full'
+                if (othersCount === 1) return 'one'
+                return 'empty'
+              }
+              const adminCellClass = (slot) => {
+                const st = adminSlotStatus(slot)
+                if (st === 'selected') return 'bg-blue-500 text-white border-blue-600 ring-2 ring-blue-300'
+                if (st === 'full') return 'bg-red-100 border-red-300 text-red-600 cursor-not-allowed'
+                if (st === 'one') return 'bg-orange-100 border-orange-300 text-orange-700 cursor-pointer hover:bg-orange-200'
+                return 'bg-green-50 border-green-300 text-green-700 cursor-pointer hover:bg-green-100'
+              }
+              const toggleAdminSlot = (slot) => {
+                const st = adminSlotStatus(slot)
+                if (st === 'full') return
+                setAdminGridSlots(prev =>
+                  prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot]
+                )
+              }
+              const saveAdminGrid = async () => {
+                await setDoc(doc(db, 'signups', adminGridToken), { ...rec, slots: [...adminGridSlots] })
+                setAdminGridToken(null)
+                setAdminGridSlots([])
+              }
+
+              return (
+                <div className="fixed inset-0 z-40 bg-black/50 flex items-start justify-center overflow-y-auto py-4 px-2">
+                  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl">
+                    {/* 標題 */}
+                    <div className="sticky top-0 bg-white rounded-t-2xl px-5 py-4 border-b flex items-center justify-between z-10">
+                      <div>
+                        <span className="font-bold text-gray-800 text-lg">{rec.name}</span>
+                        <span className="text-gray-500 text-sm ml-2">修改時段登記</span>
+                        <span className="text-xs text-gray-400 ml-2 font-mono">#{rec.token}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
+                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
+                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>1人</span>
+                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>已滿</span>
+                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>已選</span>
+                        </div>
+                        <button onClick={() => { setAdminGridToken(null); setAdminGridSlots([]) }} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+                      </div>
+                    </div>
+
+                    {/* 已選提示 */}
+                    {adminGridSlots.length > 0 && (
+                      <div className="mx-5 mt-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 flex flex-wrap gap-2 items-center">
+                        <span className="text-xs text-blue-500 mr-1">已選：</span>
+                        {[...adminGridSlots].sort().map(s => (
+                          <span key={s} className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                            {s}
+                            <button onClick={() => toggleAdminSlot(s)} className="hover:text-blue-200">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 時間軸 */}
+                    <div className="p-4 space-y-1.5">
+                      {TIME_BLOCKS.map((block) => {
+                        const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
+                        const anySelected = blockSlots.some(s => adminGridSlots.includes(s))
+                        const labelStyle = {
+                          period: anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300',
+                          free:   anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-100 text-gray-500 border-gray-200',
+                          break:  anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-400 border-gray-200',
+                          meal:   anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-amber-50 text-amber-600 border-amber-200',
+                          rest:   anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-purple-50 text-purple-500 border-purple-200',
+                        }
+                        const iconMap = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴' }
+                        return (
+                          <div key={block.label + block.start}
+                            className={`flex items-start gap-2 px-2 py-2 rounded-xl transition-colors ${anySelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                            <div className={`shrink-0 w-16 rounded-lg border text-center py-1.5 leading-tight ${labelStyle[block.type]}`}>
+                              {iconMap[block.type] && <div className="text-sm leading-none mb-0.5">{iconMap[block.type]}</div>}
+                              <div className="text-xs font-bold">{block.label}</div>
+                              <div className="text-[9px] opacity-60 mt-0.5">{block.start}</div>
+                              <div className="text-[9px] opacity-60">–{block.end}</div>
+                            </div>
+                            <div className="flex flex-wrap gap-1 flex-1">
+                              {blockSlots.map(slot => {
+                                const st = adminSlotStatus(slot)
+                                const names = signups.filter(s => s.token !== adminGridToken && s.slots.includes(slot)).map(s => s.name)
+                                return (
+                                  <button
+                                    key={slot}
+                                    onClick={() => toggleAdminSlot(slot)}
+                                    title={names.length > 0 ? `${slot}：${names.join('、')}` : slot}
+                                    className={`border rounded-lg text-center transition-all ${adminCellClass(slot)}`}
+                                    style={{ width: '46px', height: '46px' }}
+                                  >
+                                    <div className="text-[11px] font-bold leading-none">{slot}</div>
+                                    <div className="flex justify-center gap-0.5 mt-1.5">
+                                      {Array.from({ length: MAX_PER_SLOT }).map((_, i) => {
+                                        const filled = st === 'selected' ? i < (names.length + 1) : i < names.length
+                                        return (
+                                          <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${
+                                            filled
+                                              ? (st === 'selected' ? 'bg-white' : st === 'full' ? 'bg-red-400' : 'bg-orange-400')
+                                              : (st === 'selected' ? 'bg-blue-300' : 'bg-gray-200')
+                                          }`}/>
+                                        )
+                                      })}
+                                    </div>
+                                    {names.length > 0 && (
+                                      <div className="text-[8px] leading-tight mt-0.5 truncate px-0.5 opacity-80">{names.join(' ')}</div>
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* 底部 */}
+                    <div className="sticky bottom-0 bg-white rounded-b-2xl border-t px-5 py-4 flex items-center justify-between gap-3">
+                      <div className="text-sm text-gray-500">
+                        已選 <span className="font-bold text-blue-600">{adminGridSlots.length}</span> 個時段
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => { if (confirm(`確定刪除「${rec.name}」的所有登記？`)) { await deleteDoc(doc(db, 'signups', adminGridToken)); setAdminGridToken(null); setAdminGridSlots([]) } }}
+                          className="px-4 py-2 rounded-xl border border-red-200 text-sm text-red-500 hover:bg-red-50"
+                        >刪除此人</button>
+                        <button
+                          onClick={() => { setAdminGridToken(null); setAdminGridSlots([]) }}
+                          className="px-4 py-2 rounded-xl border text-sm text-gray-600 hover:bg-gray-50"
+                        >取消</button>
+                        <button
+                          onClick={saveAdminGrid}
+                          className="px-6 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+                        >儲存修改</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* 資料清除 */}
+            <div className="bg-white rounded-xl shadow p-4 border border-red-100">
+              <h2 className="font-bold text-red-600 mb-3">資料管理</h2>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => { if (confirm('確定清除所有圈數記錄？')) setLapRecords([]) }} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm hover:bg-red-100">清除圈數記錄</button>
+                <button onClick={async () => {
+                  if (!confirm('確定清除所有報名資料？')) return
+                  const batch = writeBatch(db)
+                  signups.forEach(s => batch.delete(doc(db, 'signups', s.token)))
+                  await batch.commit()
+                }} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm hover:bg-red-100">清除報名資料</button>
+                <button onClick={async () => {
+                  if (!confirm('確定清除所有資料？此動作無法復原！')) return
+                  const batch = writeBatch(db)
+                  signups.forEach(s => batch.delete(doc(db, 'signups', s.token)))
+                  await batch.commit()
+                  setParticipants([]); setSchedules([]); setLapRecords([])
+                }} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700">全部清除</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}

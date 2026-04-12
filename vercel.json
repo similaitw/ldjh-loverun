@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "name": "luodong-love-run",
+  "builds": [{"src": "package.json", "use": "@vercel/next"}],
+  "routes": [{"src": "/(.*)", "dest": "/$1"}],
+  "env": {"NODE_ENV": "production"}
+}
