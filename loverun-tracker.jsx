@@ -74,7 +74,8 @@ const genToken = () => Math.random().toString(36).slice(2, 10).toUpperCase()
 
 const BEEP_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEfAzuM1O/1dy0FIHfI7NyOPggXZbjmqqtVFgw+ltv7w3QpBSmBzvHYhTZJQJ7Y8LlqHAY3kNTv1XIqBSl8xuzcjTwIC2m06vKVVQwNUKzlmn7tBA=='
 
-const MAX_PER_SLOT = 2
+// 每時段不限人數，純顯示用
+const MAX_PER_SLOT = 0 // 已停用，保留供參考
 
 export default function LoveRunTracker() {
   const [participants, setParticipants] = useState([])
@@ -230,19 +231,18 @@ export default function LoveRunTracker() {
     return signups.filter(s => s.slots.includes(slot) && s.token !== editToken)
   }, [signups, editToken])
 
-  // 時段格子狀態
+  // 時段格子狀態（不限人數，只依人數多寡顯示顏色）
   const slotStatus = useCallback((slot) => {
     const count = getSlotSignups(slot).length
-    if (count >= MAX_PER_SLOT) return 'full'
-    if (count === 1) return 'one'
-    return 'empty'
+    if (count === 0) return 'empty'
+    if (count <= 2) return 'few'
+    if (count <= 4) return 'some'
+    return 'many'
   }, [getSlotSignups])
 
-  // 點擊時段格子
+  // 點擊時段格子（不限人數，任何時段都可點選）
   const toggleSlot = (slot) => {
-    const status = slotStatus(slot)
     const alreadySelected = signupSelectedSlots.includes(slot)
-    if (status === 'full' && !alreadySelected) return // 已滿且不是自己已選的
     setSignupSelectedSlots(prev =>
       alreadySelected ? prev.filter(s => s !== slot) : [...prev, slot]
     )
@@ -459,9 +459,10 @@ export default function LoveRunTracker() {
   const slotCellClass = (slot) => {
     const selected = signupSelectedSlots.includes(slot)
     const status = slotStatus(slot)
-    if (selected) return 'bg-blue-500 text-white border-blue-600 ring-2 ring-blue-300'
-    if (status === 'full') return 'bg-red-100 border-red-300 text-red-600 cursor-not-allowed'
-    if (status === 'one') return 'bg-orange-100 border-orange-300 text-orange-700 cursor-pointer hover:bg-orange-200'
+    if (selected) return 'bg-blue-500 text-white border-blue-600 ring-2 ring-blue-300 cursor-pointer'
+    if (status === 'many') return 'bg-red-50 border-red-200 text-red-600 cursor-pointer hover:bg-red-100'
+    if (status === 'some') return 'bg-orange-50 border-orange-200 text-orange-700 cursor-pointer hover:bg-orange-100'
+    if (status === 'few')  return 'bg-yellow-50 border-yellow-200 text-yellow-700 cursor-pointer hover:bg-yellow-100'
     return 'bg-green-50 border-green-300 text-green-700 cursor-pointer hover:bg-green-100'
   }
 
@@ -583,13 +584,35 @@ export default function LoveRunTracker() {
                       {/* 圖例 */}
                       <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
                         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
-                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>1人</span>
-                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>已滿</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>3–4人</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>5人+</span>
                         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>已選</span>
                       </div>
                       <button onClick={() => { setSignupStep('name'); setSignupSelectedSlots([]) }} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
                     </div>
                   </div>
+
+                  {/* 系統建議時段（自動選最空的時段） */}
+                  {signupSelectedSlots.length === 0 && (
+                    <div className="mx-5 mt-4 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3">
+                      <div className="text-sm text-green-700">
+                        💡 系統可自動排入較空的時段，或直接點選時段格子
+                      </div>
+                      <button
+                        onClick={() => {
+                          // 找出人數最少的前3個時段
+                          const sorted = [...TIME_SLOTS].sort((a, b) => {
+                            const ca = signups.filter(s => s.slots.includes(a) && s.token !== editToken).length
+                            const cb = signups.filter(s => s.slots.includes(b) && s.token !== editToken).length
+                            return ca - cb
+                          })
+                          setSignupSelectedSlots(sorted.slice(0, 3))
+                        }}
+                        className="shrink-0 bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-green-700 whitespace-nowrap"
+                      >自動排入</button>
+                    </div>
+                  )}
 
                   {/* 已選時段提示 */}
                   {signupSelectedSlots.length > 0 && (
@@ -652,30 +675,22 @@ export default function LoveRunTracker() {
                             {blockSlots.map(slot => {
                               const count = getSlotSignups(slot).length
                               const selected = signupSelectedSlots.includes(slot)
-                              const full = count >= MAX_PER_SLOT && !selected
                               const names = getSlotSignups(slot).map(s => s.name)
                               return (
                                 <button
                                   key={slot}
-                                  onClick={() => !full && toggleSlot(slot)}
-                                  title={names.length > 0 ? `${slot}：${names.join('、')}` : slot}
+                                  onClick={() => toggleSlot(slot)}
+                                  title={names.length > 0 ? `${slot}：${names.join('、')}（${count}人）` : `${slot}：尚無人登記`}
                                   className={`border rounded-lg text-center transition-all ${slotCellClass(slot)}`}
                                   style={{ width: '46px', height: '46px' }}
                                 >
                                   <div className="text-[11px] font-bold leading-none">{slot}</div>
-                                  <div className="flex justify-center gap-0.5 mt-1.5">
-                                    {Array.from({ length: MAX_PER_SLOT }).map((_, i) => (
-                                      <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${
-                                        i < count
-                                          ? (selected ? 'bg-white' : count >= MAX_PER_SLOT ? 'bg-red-400' : 'bg-orange-400')
-                                          : (selected ? 'bg-blue-300' : 'bg-gray-200')
-                                      }`}/>
-                                    ))}
-                                  </div>
-                                  {names.length > 0 && (
-                                    <div className="text-[8px] leading-tight mt-0.5 truncate px-0.5 opacity-80">
-                                      {names.join(' ')}
+                                  {count > 0 ? (
+                                    <div className={`text-[10px] font-semibold mt-1 ${selected ? 'text-white' : 'opacity-70'}`}>
+                                      {count}人
                                     </div>
+                                  ) : (
+                                    <div className="text-[9px] mt-1 opacity-40">空</div>
                                   )}
                                 </button>
                               )
@@ -755,8 +770,9 @@ export default function LoveRunTracker() {
                 {/* 圖例 */}
                 <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
                   <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>1人</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>已滿</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>3–4人</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>5人+</span>
                 </div>
                 {/* 依 TIME_BLOCKS 軸呈現 */}
                 <div className="space-y-1.5">
@@ -786,34 +802,25 @@ export default function LoveRunTracker() {
                           {blockSlots.map(slot => {
                             const sgs = signups.filter(s => s.slots.includes(slot))
                             const count = sgs.length
-                            const isFull = count >= MAX_PER_SLOT
-                            const isOne  = count === 1
-                            const cellCls = isFull
-                              ? 'bg-red-100 border-red-300 text-red-700'
-                              : isOne
-                              ? 'bg-orange-100 border-orange-300 text-orange-700'
-                              : 'bg-green-50 border-green-300 text-green-700'
+                            const cellCls = count === 0
+                              ? 'bg-green-50 border-green-300 text-green-700'
+                              : count <= 2
+                              ? 'bg-yellow-50 border-yellow-300 text-yellow-700'
+                              : count <= 4
+                              ? 'bg-orange-50 border-orange-300 text-orange-700'
+                              : 'bg-red-50 border-red-300 text-red-700'
                             return (
                               <div
                                 key={slot}
-                                title={sgs.length > 0 ? `${slot}：${sgs.map(s=>s.name).join('、')}` : slot}
+                                title={sgs.length > 0 ? `${slot}：${sgs.map(s=>s.name).join('、')}（${count}人）` : `${slot}：尚無人`}
                                 className={`border rounded-lg text-center ${cellCls}`}
                                 style={{ width: '46px', height: '46px' }}
                               >
                                 <div className="text-[11px] font-bold leading-none pt-1">{slot}</div>
-                                <div className="flex justify-center gap-0.5 mt-1.5">
-                                  {Array.from({ length: MAX_PER_SLOT }).map((_, i) => (
-                                    <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${
-                                      i < count
-                                        ? (isFull ? 'bg-red-400' : 'bg-orange-400')
-                                        : 'bg-gray-200'
-                                    }`}/>
-                                  ))}
-                                </div>
-                                {sgs.length > 0 && (
-                                  <div className="text-[8px] leading-tight mt-0.5 truncate px-0.5 opacity-80">
-                                    {sgs.map(s=>s.name).join(' ')}
-                                  </div>
+                                {count > 0 ? (
+                                  <div className="text-[10px] font-semibold mt-1 opacity-70">{count}人</div>
+                                ) : (
+                                  <div className="text-[9px] mt-1 opacity-30">空</div>
                                 )}
                               </div>
                             )
@@ -1190,13 +1197,13 @@ export default function LoveRunTracker() {
                               {blockSlots.map(slot => {
                                 const sgs = signups.filter(s => s.slots.includes(slot))
                                 const count = sgs.length
-                                const isFull = count >= MAX_PER_SLOT
-                                const isOne  = count === 1
-                                const cellCls = isFull
-                                  ? 'bg-red-100 border-red-300 text-red-700'
-                                  : isOne
-                                  ? 'bg-orange-100 border-orange-300 text-orange-700'
-                                  : 'bg-green-50 border-green-300 text-green-600'
+                                const cellCls = count === 0
+                                  ? 'bg-green-50 border-green-300 text-green-600'
+                                  : count <= 2
+                                  ? 'bg-yellow-50 border-yellow-300 text-yellow-700'
+                                  : count <= 4
+                                  ? 'bg-orange-50 border-orange-300 text-orange-700'
+                                  : 'bg-red-50 border-red-300 text-red-700'
                                 return (
                                   <div
                                     key={slot}
@@ -1204,13 +1211,11 @@ export default function LoveRunTracker() {
                                     style={{ width: '60px', minHeight: '46px' }}
                                   >
                                     <div className="text-[11px] font-bold leading-none pt-1">{slot}</div>
-                                    <div className="flex justify-center gap-0.5 mt-1">
-                                      {Array.from({ length: MAX_PER_SLOT }).map((_, i) => (
-                                        <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${
-                                          i < count ? (isFull ? 'bg-red-400' : 'bg-orange-400') : 'bg-gray-200'
-                                        }`}/>
-                                      ))}
-                                    </div>
+                                    {count > 0 ? (
+                                      <div className="text-[10px] font-semibold opacity-60 mt-0.5">{count}人</div>
+                                    ) : (
+                                      <div className="text-[9px] opacity-30 mt-0.5">空</div>
+                                    )}
                                     {sgs.length > 0 && (
                                       <div className="mt-0.5 px-0.5 pb-1">
                                         {sgs.map(s => (
@@ -1282,8 +1287,9 @@ export default function LoveRunTracker() {
                       <div className="flex items-center gap-3">
                         <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
                           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
-                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>1人</span>
-                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>已滿</span>
+                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
+                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>3–4人</span>
+                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>5人+</span>
                           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>已選</span>
                         </div>
                         <button onClick={() => { setAdminGridToken(null); setAdminGridSlots([]) }} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
