@@ -43,18 +43,6 @@ ldjh-loverun/
 
 ---
 
-## 環境變數
-
-### 本地開發（`.env.local`）
-
-```env
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyD_o1EB-ums3FDvbv_YzkCthR3_JO3LSPk
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=ldjh-loverun.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=ldjh-loverun
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=ldjh-loverun.firebasestorage.app
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=393975688539
-NEXT_PUBLIC_FIREBASE_APP_ID=1:393975688539:web:7c57482ebf656170c3be7e
-```
 
 ### Vercel 生產環境
 
