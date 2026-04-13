@@ -134,15 +134,6 @@ editToken        // URL ?token= 進入修改模式
 adminUnlocked    // 管理頁密碼解鎖狀態
 adminViewMode    // 'person' | 'slot'（管理頁報名檢視方式）
 ```
-
-### 管理密碼
-
-```
-ltjh@9542075
-```
-
----
-
 ## 資料儲存說明
 
 | 資料 | 儲存位置 | 說明 |
