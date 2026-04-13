@@ -25,5 +25,5 @@
 # Vercel
 .vercel
 
-#.local.env
-.local.env
+# DEVELOPMENT.md
+DEVELOPMENT.md
