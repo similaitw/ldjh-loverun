@@ -486,26 +486,32 @@ export default function LoveRunTracker() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-green-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-emerald-50">
       <audio ref={audioRef} preload="auto"><source src={BEEP_SOUND} type="audio/wav" /></audio>
 
       {/* 標題列 */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <button onClick={() => setActiveTab('signup')} className="text-left hover:opacity-80 transition-opacity">
-            <h1 className="text-xl font-bold text-blue-700">🏃‍♀️ {eventName}</h1>
-            <p className="text-xs text-gray-500">圈數記錄系統</p>
+      <header className="sticky top-0 z-10 shadow-lg"
+        style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #0891b2 100%)' }}>
+        <div className="max-w-6xl mx-auto px-4 pt-3 pb-1 flex items-center justify-between gap-4">
+          <button onClick={() => setActiveTab('signup')} className="text-left hover:opacity-90 transition-opacity flex items-center gap-3 min-w-0">
+            <span className="text-3xl shrink-0">🏃‍♀️</span>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-extrabold text-white leading-tight tracking-wide truncate">{eventName}</h1>
+              <p className="text-[11px] text-blue-200 font-medium">時段登記系統</p>
+            </div>
           </button>
-          <div className="text-right">
-            <div className="text-2xl font-mono font-bold text-gray-700">{currentTime}</div>
-            <div className="text-xs text-gray-400">共 {lapRecords.length} 筆記錄</div>
+          <div className="text-right shrink-0">
+            <div className="text-2xl sm:text-3xl font-mono font-bold text-white tabular-nums">{currentTime}</div>
+            <div className="text-[11px] text-blue-200">已登記 <span className="font-bold text-yellow-300">{signups.length}</span> 人</div>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto px-4 flex gap-1 pb-2 overflow-x-auto">
+        <div className="max-w-6xl mx-auto px-3 flex gap-1 py-2 overflow-x-auto">
           {TABS.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                activeTab === tab.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
+                activeTab === tab.key
+                  ? 'bg-white text-blue-700 shadow-md'
+                  : 'text-blue-100 hover:bg-white/20'
               }`}>{tab.label}</button>
           ))}
         </div>
@@ -533,52 +539,74 @@ export default function LoveRunTracker() {
 
             {/* ── STEP 1：輸入姓名 ── */}
             {signupStep === 'name' && !editToken && (
-              <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md mx-auto mt-8">
-                <h2 className="text-xl font-bold text-gray-800 mb-1">時段登記</h2>
-                <p className="text-sm text-gray-500 mb-5">輸入姓名後，即可選擇想登記的時段</p>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={signupNameInput}
-                    onChange={e => setSignupNameInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && signupNameInput.trim()) setSignupStep('grid') }}
-                    placeholder="請輸入您的姓名..."
-                    list="participant-list"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-blue-400"
-                    autoFocus
-                  />
-                  <datalist id="participant-list">
-                    {participants.map(n => <option key={n} value={n} />)}
-                  </datalist>
-                  <button
-                    onClick={() => { if (signupNameInput.trim()) setSignupStep('grid') }}
-                    disabled={!signupNameInput.trim()}
-                    className="w-full bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition-colors"
-                  >選擇時段 →</button>
+              <div className="max-w-md mx-auto mt-6">
+                {/* 快速統計摘要 */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {[
+                    { label: '已登記人數', value: signups.length, color: 'from-blue-500 to-blue-600', icon: '👥' },
+                    { label: '已佔用時段', value: [...new Set(signups.flatMap(s => s.slots))].length, color: 'from-emerald-500 to-emerald-600', icon: '📅' },
+                    { label: '可用時段', value: Math.max(0, TIME_SLOTS.length - [...new Set(signups.flatMap(s => s.slots))].length), color: 'from-violet-500 to-violet-600', icon: '✨' },
+                  ].map(({ label, value, color, icon }) => (
+                    <div key={label} className={`bg-gradient-to-br ${color} rounded-2xl p-3 text-white text-center shadow-md`}>
+                      <div className="text-lg mb-0.5">{icon}</div>
+                      <div className="text-2xl font-black leading-none">{value}</div>
+                      <div className="text-[10px] opacity-80 mt-1 leading-tight">{label}</div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* 已有登記可查詢 */}
-                {signups.length > 0 && (
-                  <div className="mt-6 pt-5 border-t">
-                    <p className="text-xs text-gray-400 mb-2">已有登記？輸入修改碼查詢</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="修改碼（8碼）"
-                        maxLength={8}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            const t = e.target.value.trim().toUpperCase()
-                            const rec = signups.find(s => s.token === t)
-                            if (rec) { setEditToken(t); setEditRecord(rec); setSignupNameInput(rec.name); setSignupSelectedSlots([...rec.slots]); setSignupStep('grid') }
-                            else alert('找不到此修改碼')
-                          }
-                        }}
-                        className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 font-mono uppercase"
-                      />
+                <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-lg shadow">📋</div>
+                    <div>
+                      <h2 className="text-lg font-extrabold text-gray-800 leading-tight">時段登記</h2>
+                      <p className="text-xs text-gray-400">輸入姓名後選擇想登記的時段</p>
                     </div>
                   </div>
-                )}
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={signupNameInput}
+                      onChange={e => setSignupNameInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && signupNameInput.trim()) setSignupStep('grid') }}
+                      placeholder="請輸入您的姓名..."
+                      list="participant-list"
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-blue-400 transition-colors"
+                      autoFocus
+                    />
+                    <datalist id="participant-list">
+                      {participants.map(n => <option key={n} value={n} />)}
+                    </datalist>
+                    <button
+                      onClick={() => { if (signupNameInput.trim()) setSignupStep('grid') }}
+                      disabled={!signupNameInput.trim()}
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 text-white py-3 rounded-xl text-base font-bold hover:from-blue-700 hover:to-blue-600 transition-all shadow-md disabled:shadow-none"
+                    >選擇時段 →</button>
+                  </div>
+
+                  {/* 已有登記可查詢 */}
+                  {signups.length > 0 && (
+                    <div className="mt-5 pt-4 border-t border-dashed">
+                      <p className="text-xs text-gray-400 mb-2">已有登記？輸入修改碼查詢</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="修改碼（8碼）"
+                          maxLength={8}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              const t = e.target.value.trim().toUpperCase()
+                              const rec = signups.find(s => s.token === t)
+                              if (rec) { setEditToken(t); setEditRecord(rec); setSignupNameInput(rec.name); setSignupSelectedSlots([...rec.slots]); setSignupStep('grid') }
+                              else alert('找不到此修改碼')
+                            }
+                          }}
+                          className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 font-mono uppercase"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -770,48 +798,61 @@ export default function LoveRunTracker() {
 
             {/* ── STEP 3：完成 ── */}
             {signupStep === 'done' && (
-              <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md mx-auto mt-8 text-center">
-                <div className="text-4xl mb-3">✅</div>
-                <h2 className="text-xl font-bold text-gray-800 mb-1">
-                  {editRecord ? '修改完成！' : '登記完成！'}
-                </h2>
-                <p className="text-sm text-gray-500 mb-5">
-                  {signupNameInput}，已完成時段登記
-                </p>
-
-                {/* 修改碼 */}
-                <div className="bg-gray-50 border rounded-xl p-4 mb-4">
-                  <div className="text-xs text-gray-500 mb-1">您的修改碼（請記下）</div>
-                  <div className="text-3xl font-mono font-bold text-blue-600 tracking-widest mb-3">{signupDoneToken}</div>
-                  <button
-                    onClick={() => copyLink(signupDoneToken)}
-                    className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700"
-                  >📋 複製修改連結</button>
-                  <div className="mt-2 text-xs text-gray-400 break-all">{getEditLink(signupDoneToken)}</div>
-                </div>
-
-                {/* 已選時段摘要 */}
-                <div className="text-left bg-blue-50 rounded-xl p-3 mb-4">
-                  <div className="text-xs text-blue-500 font-medium mb-2">已登記時段：</div>
-                  <div className="flex flex-wrap gap-1">
-                    {[...signupSelectedSlots].sort().map(s => (
-                      <span key={s} className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">{s}</span>
-                    ))}
+              <div className="max-w-md mx-auto mt-6">
+                {/* 慶祝卡片 */}
+                <div className="rounded-3xl shadow-xl overflow-hidden mb-4"
+                  style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #0891b2 100%)' }}>
+                  <div className="px-6 pt-8 pb-6 text-center">
+                    <div className="text-5xl mb-3">{editRecord ? '✏️' : '🎉'}</div>
+                    <h2 className="text-2xl font-black text-white mb-1">
+                      {editRecord ? '修改完成！' : '登記成功！'}
+                    </h2>
+                    <p className="text-blue-200 text-sm">
+                      <span className="text-yellow-300 font-bold">{signupNameInput}</span>，已完成 <span className="text-yellow-300 font-bold">{signupSelectedSlots.length}</span> 個時段登記
+                    </p>
+                  </div>
+                  {/* 已選時段 */}
+                  <div className="bg-white/10 px-6 py-4">
+                    <div className="text-[11px] text-blue-200 font-semibold mb-2 uppercase tracking-wide">已登記時段</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[...signupSelectedSlots].sort().map(s => (
+                        <span key={s} className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-mono font-semibold border border-white/30">{s}</span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <button onClick={startNewSignup} className="w-full border border-gray-200 text-gray-600 py-2 rounded-xl text-sm hover:bg-gray-50">
-                  繼續為其他人登記
+                {/* 修改碼卡片 */}
+                <div className="bg-white rounded-2xl shadow-lg p-5 mb-3 border border-gray-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">🔑</span>
+                    <span className="text-sm font-bold text-gray-700">您的修改碼（請妥善保存）</span>
+                  </div>
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 mb-3 text-center">
+                    <div className="text-3xl font-mono font-black text-blue-600 tracking-[0.3em]">{signupDoneToken}</div>
+                  </div>
+                  <button
+                    onClick={() => copyLink(signupDoneToken)}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-2.5 rounded-xl text-sm font-bold hover:from-blue-700 hover:to-blue-600 transition-all shadow"
+                  >📋 複製修改連結</button>
+                  <div className="mt-2 text-[10px] text-gray-300 break-all text-center">{getEditLink(signupDoneToken)}</div>
+                </div>
+
+                <button onClick={startNewSignup} className="w-full border-2 border-gray-200 text-gray-500 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all">
+                  + 繼續為其他人登記
                 </button>
               </div>
             )}
 
             {/* ── 時段總覽（底部，step=name 時顯示）── */}
             {signupStep === 'name' && !editToken && (
-              <div className="mt-6 bg-white rounded-xl shadow p-4">
+              <div className="mt-4 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-bold text-gray-700">目前登記狀況總覽</h2>
-                  <button onClick={exportSignups} className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-200">📥 匯出報名表</button>
+                  <div className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-white text-xs shadow">📊</span>
+                    <h2 className="font-extrabold text-gray-800">登記狀況總覽</h2>
+                  </div>
+                  <button onClick={exportSignups} className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-medium">📥 匯出</button>
                 </div>
                 {/* 圖例 */}
                 <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
@@ -907,10 +948,15 @@ export default function LoveRunTracker() {
         {activeTab === 'stats' && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              {[['總圈數', lapRecords.length, 'text-blue-600'], ['參加人數', stats.length, 'text-green-600'], ['登記時段數', signups.reduce((a,s)=>a+s.slots.length,0), 'text-purple-600']].map(([label, val, cls]) => (
-                <div key={label} className="bg-white rounded-xl shadow p-4 text-center">
-                  <div className="text-sm text-gray-500 mb-1">{label}</div>
-                  <div className={`text-3xl font-bold ${cls}`}>{val}</div>
+              {[
+                ['總圈數', lapRecords.length, 'from-blue-500 to-blue-600', '🏃'],
+                ['參加人數', stats.length, 'from-emerald-500 to-emerald-600', '👥'],
+                ['登記時段數', signups.reduce((a,s)=>a+s.slots.length,0), 'from-violet-500 to-violet-600', '📅'],
+              ].map(([label, val, grad, icon]) => (
+                <div key={label} className={`bg-gradient-to-br ${grad} rounded-2xl shadow-lg p-4 text-center text-white`}>
+                  <div className="text-2xl mb-1">{icon}</div>
+                  <div className="text-3xl font-black leading-none">{val}</div>
+                  <div className="text-[11px] opacity-80 mt-1.5 leading-tight">{label}</div>
                 </div>
               ))}
             </div>
@@ -1009,32 +1055,43 @@ export default function LoveRunTracker() {
             管理介面
         ═══════════════════════════════ */}
         {activeTab === 'admin' && !adminUnlocked && (
-          <div className="max-w-sm mx-auto mt-16 bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="text-4xl mb-4">🔒</div>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">管理員驗證</h2>
-            <p className="text-sm text-gray-400 mb-6">請輸入管理密碼</p>
-            <input
-              type="password"
-              value={adminPwInput}
-              onChange={e => { setAdminPwInput(e.target.value); setAdminPwError(false) }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
-                  else { setAdminPwError(true); setAdminPwInput('') }
-                }
-              }}
-              placeholder="輸入密碼..."
-              className={`w-full border-2 rounded-xl px-4 py-3 text-base text-center focus:outline-none mb-3 ${adminPwError ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-blue-400'}`}
-              autoFocus
-            />
-            {adminPwError && <p className="text-sm text-red-500 mb-3">密碼錯誤，請再試一次</p>}
-            <button
-              onClick={() => {
-                if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
-                else { setAdminPwError(true); setAdminPwInput('') }
-              }}
-              className="w-full bg-blue-600 text-white py-3 rounded-xl text-base font-semibold hover:bg-blue-700 transition-colors"
-            >進入管理</button>
+          <div className="max-w-sm mx-auto mt-12">
+            <div className="rounded-3xl shadow-2xl overflow-hidden">
+              <div className="px-8 pt-10 pb-8 text-center"
+                style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)' }}>
+                <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-4xl mx-auto mb-4 shadow-inner">🔒</div>
+                <h2 className="text-xl font-black text-white mb-1">管理員驗證</h2>
+                <p className="text-sm text-blue-200">請輸入管理密碼以繼續</p>
+              </div>
+              <div className="bg-white px-8 py-6">
+                <input
+                  type="password"
+                  value={adminPwInput}
+                  onChange={e => { setAdminPwInput(e.target.value); setAdminPwError(false) }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
+                      else { setAdminPwError(true); setAdminPwInput('') }
+                    }
+                  }}
+                  placeholder="輸入密碼..."
+                  className={`w-full border-2 rounded-xl px-4 py-3 text-base text-center focus:outline-none mb-3 transition-colors ${adminPwError ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-blue-400'}`}
+                  autoFocus
+                />
+                {adminPwError && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-sm text-red-600 text-center mb-3">
+                    ❌ 密碼錯誤，請再試一次
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
+                    else { setAdminPwError(true); setAdminPwInput('') }
+                  }}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-3 rounded-xl text-base font-bold hover:from-blue-700 hover:to-blue-600 transition-all shadow-md"
+                >進入管理 →</button>
+              </div>
+            </div>
           </div>
         )}
 
