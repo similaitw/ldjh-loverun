@@ -43,6 +43,20 @@ ldjh-loverun/
 
 ---
 
+## 環境變數
+
+### 本地開發（`.env.local`）
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
+```
+
+> 實際值請從 Firebase Console → 專案設定 → 您的應用程式 取得，或複製既有的 `.env.local`。
 
 ### Vercel 生產環境
 
@@ -134,6 +148,14 @@ editToken        // URL ?token= 進入修改模式
 adminUnlocked    // 管理頁密碼解鎖狀態
 adminViewMode    // 'person' | 'slot'（管理頁報名檢視方式）
 ```
+
+### 管理密碼
+
+> 管理密碼定義在 `loverun-tracker.jsx` 的 `ADMIN_PASSWORD` 常數中，請勿公開。
+
+---
+
+
 ## 資料儲存說明
 
 | 資料 | 儲存位置 | 說明 |

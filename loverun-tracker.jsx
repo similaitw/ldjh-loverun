@@ -96,6 +96,9 @@ export default function LoveRunTracker() {
   const [signupSelectedSlots, setSignupSelectedSlots] = useState([]) // 本次選擇的時段
   const [signupToken, setSignupToken] = useState('')        // 完成後的 token
   const [signupDoneToken, setSignupDoneToken] = useState('') // 顯示給用戶的 token
+  const [signupSubmitting, setSignupSubmitting] = useState(false) // 送出中
+  const [signupError, setSignupError] = useState('')        // 送出錯誤訊息
+  const [hoveredSlot, setHoveredSlot] = useState(null)      // 首頁總覽 hover 的時段
 
   // 修改模式：從 URL token 進入
   const [editToken, setEditToken] = useState(null)
@@ -254,18 +257,27 @@ export default function LoveRunTracker() {
     if (!name) { alert('請輸入姓名！'); return }
     if (signupSelectedSlots.length === 0) { alert('請至少選擇一個時段！'); return }
 
-    if (editRecord) {
-      // 修改模式：更新既有記錄
-      await setDoc(doc(db, 'signups', editToken), { ...editRecord, name, slots: [...signupSelectedSlots] })
-      setSignupDoneToken(editToken)
-    } else {
-      // 新增
-      const token = genToken()
-      const record = { id: Date.now(), name, token, slots: [...signupSelectedSlots], createdAt: Date.now() }
-      await setDoc(doc(db, 'signups', token), record)
-      setSignupDoneToken(token)
+    setSignupSubmitting(true)
+    setSignupError('')
+    try {
+      if (editRecord) {
+        // 修改模式：更新既有記錄
+        await setDoc(doc(db, 'signups', editToken), { ...editRecord, name, slots: [...signupSelectedSlots] })
+        setSignupDoneToken(editToken)
+      } else {
+        // 新增
+        const token = genToken()
+        const record = { id: Date.now(), name, token, slots: [...signupSelectedSlots], createdAt: Date.now() }
+        await setDoc(doc(db, 'signups', token), record)
+        setSignupDoneToken(token)
+      }
+      setSignupStep('done')
+    } catch (err) {
+      setSignupError('儲存失敗，請確認網路連線後再試。')
+      console.error('submitSignup error:', err)
+    } finally {
+      setSignupSubmitting(false)
     }
-    setSignupStep('done')
   }
 
   // 取消修改模式
@@ -573,7 +585,18 @@ export default function LoveRunTracker() {
             {/* ── STEP 2：時間表格（浮動彈窗） ── */}
             {signupStep === 'grid' && (
               <div className="fixed inset-0 z-40 bg-black/50 flex items-start justify-center overflow-y-auto py-4 px-2">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl relative">
+                  {/* 送出中遮罩 */}
+                  {signupSubmitting && (
+                    <div className="absolute inset-0 z-20 bg-white/70 rounded-2xl flex flex-col items-center justify-center gap-3">
+                      <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                      <div className="text-blue-600 font-semibold text-base">正在儲存登記…</div>
+                      <div className="text-gray-400 text-sm">請稍候，勿關閉頁面</div>
+                    </div>
+                  )}
                   {/* 彈窗標題 */}
                   <div className="sticky top-0 bg-white rounded-t-2xl px-5 py-4 border-b flex items-center justify-between z-10">
                     <div>
@@ -589,7 +612,11 @@ export default function LoveRunTracker() {
                         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>5人+</span>
                         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>已選</span>
                       </div>
-                      <button onClick={() => { setSignupStep('name'); setSignupSelectedSlots([]) }} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+                      <button
+                        onClick={() => { setSignupStep('name'); setSignupSelectedSlots([]); setSignupError('') }}
+                        disabled={signupSubmitting}
+                        className="text-gray-400 hover:text-gray-600 text-2xl leading-none disabled:opacity-30"
+                      >×</button>
                     </div>
                   </div>
 
@@ -702,20 +729,39 @@ export default function LoveRunTracker() {
                   </div>
 
                   {/* 底部操作列 */}
-                  <div className="sticky bottom-0 bg-white rounded-b-2xl border-t px-5 py-4 flex items-center justify-between gap-3">
-                    <div className="text-sm text-gray-500">
-                      已選 <span className="font-bold text-blue-600">{signupSelectedSlots.length}</span> 個時段
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { setSignupStep('name'); setSignupSelectedSlots([]) }}
-                        className="px-4 py-2 rounded-xl border text-sm text-gray-600 hover:bg-gray-50"
-                      >取消</button>
-                      <button
-                        onClick={submitSignup}
-                        disabled={signupSelectedSlots.length === 0}
-                        className="px-6 py-2 rounded-xl bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
-                      >{editRecord ? '確認修改' : '確認登記'}</button>
+                  <div className="sticky bottom-0 bg-white rounded-b-2xl border-t px-5 py-4">
+                    {/* 錯誤訊息 */}
+                    {signupError && (
+                      <div className="mb-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600 flex items-center gap-2">
+                        ⚠️ {signupError}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm text-gray-500">
+                        已選 <span className="font-bold text-blue-600">{signupSelectedSlots.length}</span> 個時段
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setSignupStep('name'); setSignupSelectedSlots([]); setSignupError('') }}
+                          disabled={signupSubmitting}
+                          className="px-4 py-2 rounded-xl border text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                        >取消</button>
+                        <button
+                          onClick={submitSignup}
+                          disabled={signupSelectedSlots.length === 0 || signupSubmitting}
+                          className="px-6 py-2 rounded-xl bg-blue-600 disabled:bg-gray-300 disabled:text-gray-400 text-white text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 min-w-[100px] justify-center"
+                        >
+                          {signupSubmitting ? (
+                            <>
+                              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                              </svg>
+                              儲存中…
+                            </>
+                          ) : (editRecord ? '確認修改' : '確認登記')}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -809,18 +855,38 @@ export default function LoveRunTracker() {
                               : count <= 4
                               ? 'bg-orange-50 border-orange-300 text-orange-700'
                               : 'bg-red-50 border-red-300 text-red-700'
+                            const isHovered = hoveredSlot === slot
                             return (
                               <div
                                 key={slot}
-                                title={sgs.length > 0 ? `${slot}：${sgs.map(s=>s.name).join('、')}（${count}人）` : `${slot}：尚無人`}
-                                className={`border rounded-lg text-center ${cellCls}`}
+                                className={`relative border rounded-lg text-center cursor-default transition-shadow ${cellCls} ${isHovered && count > 0 ? 'ring-2 ring-offset-1 ring-blue-300 z-10' : ''}`}
                                 style={{ width: '46px', height: '46px' }}
+                                onMouseEnter={() => setHoveredSlot(slot)}
+                                onMouseLeave={() => setHoveredSlot(null)}
                               >
                                 <div className="text-[11px] font-bold leading-none pt-1">{slot}</div>
                                 {count > 0 ? (
                                   <div className="text-[10px] font-semibold mt-1 opacity-70">{count}人</div>
                                 ) : (
                                   <div className="text-[9px] mt-1 opacity-30">空</div>
+                                )}
+                                {/* Tooltip：顯示已登記名單 */}
+                                {isHovered && count > 0 && (
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
+                                    <div className="bg-gray-900 text-white rounded-xl shadow-xl px-3 py-2 text-left whitespace-nowrap">
+                                      <div className="text-[11px] font-bold text-gray-300 mb-1">{slot} · {count} 人</div>
+                                      <div className="space-y-0.5">
+                                        {sgs.map((s, i) => (
+                                          <div key={s.token} className="text-xs flex items-center gap-1.5">
+                                            <span className="w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] flex items-center justify-center shrink-0">{i + 1}</span>
+                                            {s.name}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    {/* 箭頭 */}
+                                    <div className="w-2 h-2 bg-gray-900 rotate-45 mx-auto -mt-1"/>
+                                  </div>
                                 )}
                               </div>
                             )
