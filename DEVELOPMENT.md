@@ -200,7 +200,7 @@ npx vercel --prod
 ## 已知問題 / 注意事項
 
 1. **Vercel 自動部署不可用**：GitHub commit 作者 email（similai@gmail.com）與 Vercel team 帳號不符，每次更新需手動執行 `npx vercel --prod`
-2. **管理密碼在前端**：`ADMIN_PASSWORD = 'ltjh@9542075'` 寫在 `loverun-tracker.jsx` 中，僅作前端隱藏，非真正安全。若需更高安全性需加 Firebase Authentication
+2. **管理密碼在前端**：管理密碼透過 `NEXT_PUBLIC_ADMIN_PASSWORD` 環境變數注入，僅作前端隱藏，非真正安全。若需更高安全性需加 Firebase Authentication
 3. **Firestore 規則全開**：目前任何人都可讀寫，依賴前端密碼保護管理功能
 
 ---
