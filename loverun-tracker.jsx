@@ -478,6 +478,28 @@ export default function LoveRunTracker() {
     return 'bg-green-50 border-green-300 text-green-700 cursor-pointer hover:bg-green-100'
   }
 
+  // 共用的 labelStyle / iconMap（供多處時間表使用）
+  const LABEL_STYLE = {
+    period: 'bg-white text-gray-700 border-gray-300',
+    free:   'bg-gray-100 text-gray-500 border-gray-200',
+    break:  'bg-gray-50 text-gray-400 border-gray-200',
+    meal:   'bg-amber-50 text-amber-600 border-amber-200',
+    rest:   'bg-purple-50 text-purple-500 border-purple-200',
+    extra:  'bg-teal-50 text-teal-600 border-teal-200',
+  }
+  const ICON_MAP = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴', extra: '⏰' }
+
+  // 圖例元件（共用）
+  const Legend = () => (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
+      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
+      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>3–4人</span>
+      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>5人+</span>
+      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>已選</span>
+    </div>
+  )
+
   const TABS = [
     { key: 'signup', label: '📋 報名登記' },
     { key: 'stats', label: '📊 統計資料' },
@@ -492,20 +514,20 @@ export default function LoveRunTracker() {
       {/* 標題列 */}
       <header className="sticky top-0 z-10 shadow-lg"
         style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #0891b2 100%)' }}>
-        <div className="max-w-6xl mx-auto px-4 pt-3 pb-1 flex items-center justify-between gap-4">
+        <div className="max-w-3xl mx-auto px-4 pt-3 pb-1 flex items-center justify-between gap-4">
           <button onClick={() => setActiveTab('signup')} className="text-left hover:opacity-90 transition-opacity flex items-center gap-3 min-w-0">
-            <span className="text-3xl shrink-0">🏃‍♀️</span>
+            <span className="text-2xl sm:text-3xl shrink-0">🏃‍♀️</span>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-extrabold text-white leading-tight tracking-wide truncate">{eventName}</h1>
+              <h1 className="text-base sm:text-xl font-extrabold text-white leading-tight tracking-wide truncate">{eventName}</h1>
               <p className="text-[11px] text-blue-200 font-medium">時段登記系統</p>
             </div>
           </button>
           <div className="text-right shrink-0">
-            <div className="text-2xl sm:text-3xl font-mono font-bold text-white tabular-nums">{currentTime}</div>
+            <div className="text-xl sm:text-2xl font-mono font-bold text-white tabular-nums">{currentTime}</div>
             <div className="text-[11px] text-blue-200">已登記 <span className="font-bold text-yellow-300">{signups.length}</span> 人</div>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto px-3 flex gap-1 py-2 overflow-x-auto">
+        <div className="max-w-3xl mx-auto px-3 flex gap-1 py-2 overflow-x-auto">
           {TABS.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
@@ -517,7 +539,7 @@ export default function LoveRunTracker() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
 
         {/* ═══════════════════════════════
             報名登記
@@ -539,27 +561,28 @@ export default function LoveRunTracker() {
 
             {/* ── STEP 1：輸入姓名 ── */}
             {signupStep === 'name' && !editToken && (
-              <div className="max-w-md mx-auto mt-6">
-                {/* 快速統計摘要 */}
-                <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="mt-4">
+                {/* 統計摘要列（手機橫排3欄，較寬時也是橫排） */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                   {[
                     { label: '已登記人數', value: signups.length, color: 'from-blue-500 to-blue-600', icon: '👥' },
                     { label: '已佔用時段', value: [...new Set(signups.flatMap(s => s.slots))].length, color: 'from-emerald-500 to-emerald-600', icon: '📅' },
                     { label: '可用時段', value: Math.max(0, TIME_SLOTS.length - [...new Set(signups.flatMap(s => s.slots))].length), color: 'from-violet-500 to-violet-600', icon: '✨' },
                   ].map(({ label, value, color, icon }) => (
                     <div key={label} className={`bg-gradient-to-br ${color} rounded-2xl p-3 text-white text-center shadow-md`}>
-                      <div className="text-lg mb-0.5">{icon}</div>
-                      <div className="text-2xl font-black leading-none">{value}</div>
-                      <div className="text-[10px] opacity-80 mt-1 leading-tight">{label}</div>
+                      <div className="text-base sm:text-lg mb-0.5">{icon}</div>
+                      <div className="text-xl sm:text-2xl font-black leading-none">{value}</div>
+                      <div className="text-[9px] sm:text-[10px] opacity-80 mt-1 leading-tight">{label}</div>
                     </div>
                   ))}
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+                {/* 登記表單卡片 */}
+                <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-lg shadow">📋</div>
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-lg shadow">📋</div>
                     <div>
-                      <h2 className="text-lg font-extrabold text-gray-800 leading-tight">時段登記</h2>
+                      <h2 className="text-base sm:text-lg font-extrabold text-gray-800 leading-tight">時段登記</h2>
                       <p className="text-xs text-gray-400">輸入姓名後選擇想登記的時段</p>
                     </div>
                   </div>
@@ -586,37 +609,37 @@ export default function LoveRunTracker() {
 
                   {/* 已有登記可查詢 */}
                   {signups.length > 0 && (
-                    <div className="mt-5 pt-4 border-t border-dashed">
+                    <div className="mt-4 pt-4 border-t border-dashed">
                       <p className="text-xs text-gray-400 mb-2">已有登記？輸入修改碼查詢</p>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="修改碼（8碼）"
-                          maxLength={8}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              const t = e.target.value.trim().toUpperCase()
-                              const rec = signups.find(s => s.token === t)
-                              if (rec) { setEditToken(t); setEditRecord(rec); setSignupNameInput(rec.name); setSignupSelectedSlots([...rec.slots]); setSignupStep('grid') }
-                              else alert('找不到此修改碼')
-                            }
-                          }}
-                          className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 font-mono uppercase"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="修改碼（8碼）"
+                        maxLength={8}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            const t = e.target.value.trim().toUpperCase()
+                            const rec = signups.find(s => s.token === t)
+                            if (rec) { setEditToken(t); setEditRecord(rec); setSignupNameInput(rec.name); setSignupSelectedSlots([...rec.slots]); setSignupStep('grid') }
+                            else alert('找不到此修改碼')
+                          }
+                        }}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 font-mono uppercase"
+                      />
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* ── STEP 2：時間表格（浮動彈窗） ── */}
+            {/* ── STEP 2：時間表格（手機全螢幕 / 平板+PC 彈窗） ── */}
             {signupStep === 'grid' && (
-              <div className="fixed inset-0 z-40 bg-black/50 flex items-start justify-center overflow-y-auto py-4 px-2">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl relative">
+              <div className="fixed inset-0 z-40 bg-black/50 flex items-end sm:items-start justify-center sm:overflow-y-auto sm:py-4 sm:px-4">
+                {/* 手機：底部滑出；平板/PC：置中 modal */}
+                <div className="bg-white w-full sm:rounded-2xl sm:shadow-2xl sm:max-w-2xl relative
+                  rounded-t-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
                   {/* 送出中遮罩 */}
                   {signupSubmitting && (
-                    <div className="absolute inset-0 z-20 bg-white/70 rounded-2xl flex flex-col items-center justify-center gap-3">
+                    <div className="absolute inset-0 z-20 bg-white/70 rounded-t-3xl sm:rounded-2xl flex flex-col items-center justify-center gap-3">
                       <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -626,13 +649,15 @@ export default function LoveRunTracker() {
                     </div>
                   )}
                   {/* 彈窗標題 */}
-                  <div className="sticky top-0 bg-white rounded-t-2xl px-5 py-4 border-b flex items-center justify-between z-10">
-                    <div>
-                      <span className="font-bold text-gray-800 text-lg">{signupNameInput}</span>
+                  <div className="px-4 sm:px-5 py-3 sm:py-4 border-b flex items-center justify-between shrink-0">
+                    {/* 手機拖曳把手 */}
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 rounded-full sm:hidden"/>
+                    <div className="mt-2 sm:mt-0">
+                      <span className="font-bold text-gray-800 text-base sm:text-lg">{signupNameInput}</span>
                       <span className="text-gray-500 text-sm ml-2">選擇時段</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {/* 圖例 */}
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      {/* 圖例：平板以上才顯示 */}
                       <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
                         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
                         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
@@ -648,15 +673,12 @@ export default function LoveRunTracker() {
                     </div>
                   </div>
 
-                  {/* 系統建議時段（自動選最空的時段） */}
+                  {/* 系統建議時段 */}
                   {signupSelectedSlots.length === 0 && (
-                    <div className="mx-5 mt-4 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3">
-                      <div className="text-sm text-green-700">
-                        💡 系統可自動排入較空的時段，或直接點選時段格子
-                      </div>
+                    <div className="mx-3 sm:mx-5 mt-3 bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center justify-between gap-3">
+                      <div className="text-xs sm:text-sm text-green-700">💡 系統可自動排入較空時段，或直接點選格子</div>
                       <button
                         onClick={() => {
-                          // 找出人數最少的前3個時段
                           const sorted = [...TIME_SLOTS].sort((a, b) => {
                             const ca = signups.filter(s => s.slots.includes(a) && s.token !== editToken).length
                             const cb = signups.filter(s => s.slots.includes(b) && s.token !== editToken).length
@@ -671,7 +693,7 @@ export default function LoveRunTracker() {
 
                   {/* 已選時段提示 */}
                   {signupSelectedSlots.length > 0 && (
-                    <div className="mx-5 mt-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 flex flex-wrap gap-2 items-center">
+                    <div className="mx-3 sm:mx-5 mt-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 flex flex-wrap gap-1.5 items-center">
                       <span className="text-xs text-blue-500 mr-1">已選：</span>
                       {[...signupSelectedSlots].sort().map(s => (
                         <span key={s} className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -682,50 +704,25 @@ export default function LoveRunTracker() {
                     </div>
                   )}
 
-                  {/* 時間表：完整時間軸，逐區塊顯示 */}
-                  <div className="p-4 space-y-1.5">
+                  {/* 時間表：可捲動區域 */}
+                  <div className="overflow-y-auto flex-1 p-3 sm:p-4 space-y-1">
                     {TIME_BLOCKS.map((block) => {
                       const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
                       const anySelected = blockSlots.some(s => signupSelectedSlots.includes(s))
-
-                      // 左側標籤樣式依區塊類型
-                      const labelStyle = {
-                        period: anySelected
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-gray-700 border-gray-300',
-                        free:   anySelected
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-gray-100 text-gray-500 border-gray-200',
-                        break:  anySelected
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-gray-50 text-gray-400 border-gray-200',
-                        meal:   anySelected
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-amber-50 text-amber-600 border-amber-200',
-                        rest:   anySelected
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-purple-50 text-purple-500 border-purple-200',
-                        extra:  anySelected
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-teal-50 text-teal-600 border-teal-200',
-                      }
-                      const iconMap = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴', extra: '⏰' }
-
+                      const activeLabelStyle = anySelected ? 'bg-blue-600 text-white border-blue-600' : LABEL_STYLE[block.type]
                       return (
                         <div key={block.label + block.start}
-                          className={`flex items-start gap-2 px-2 py-2 rounded-xl transition-colors ${
+                          className={`flex items-start gap-1.5 sm:gap-2 px-1.5 sm:px-2 py-1.5 rounded-xl transition-colors ${
                             anySelected ? 'bg-blue-50' : 'hover:bg-gray-50'
                           }`}>
                           {/* 左側標籤 */}
-                          <div className={`shrink-0 w-16 rounded-lg border text-center py-1.5 leading-tight ${labelStyle[block.type]}`}>
-                            {iconMap[block.type] && (
-                              <div className="text-sm leading-none mb-0.5">{iconMap[block.type]}</div>
-                            )}
-                            <div className="text-xs font-bold">{block.label}</div>
-                            <div className="text-[9px] opacity-60 mt-0.5">{block.start}</div>
-                            <div className="text-[9px] opacity-60">–{block.end}</div>
+                          <div className={`shrink-0 w-12 sm:w-14 rounded-lg border text-center py-1 leading-tight ${activeLabelStyle}`}>
+                            {ICON_MAP[block.type] && <div className="text-xs leading-none mb-0.5">{ICON_MAP[block.type]}</div>}
+                            <div className="text-[10px] sm:text-xs font-bold">{block.label}</div>
+                            <div className="text-[8px] opacity-60 mt-0.5">{block.start}</div>
+                            <div className="text-[8px] opacity-60">–{block.end}</div>
                           </div>
-                          {/* 右側格子 */}
+                          {/* 右側格子：手機 38px，平板以上 44px */}
                           <div className="flex flex-wrap gap-1 flex-1">
                             {blockSlots.map(slot => {
                               const count = getSlotSignups(slot).length
@@ -737,15 +734,13 @@ export default function LoveRunTracker() {
                                   onClick={() => toggleSlot(slot)}
                                   title={names.length > 0 ? `${slot}：${names.join('、')}（${count}人）` : `${slot}：尚無人登記`}
                                   className={`border rounded-lg text-center transition-all ${slotCellClass(slot)}`}
-                                  style={{ width: '46px', height: '46px' }}
+                                  style={{ width: '38px', height: '38px' }}
                                 >
-                                  <div className="text-[11px] font-bold leading-none">{slot}</div>
+                                  <div className="text-[10px] font-bold leading-none">{slot}</div>
                                   {count > 0 ? (
-                                    <div className={`text-[10px] font-semibold mt-1 ${selected ? 'text-white' : 'opacity-70'}`}>
-                                      {count}人
-                                    </div>
+                                    <div className={`text-[9px] font-semibold mt-0.5 ${selected ? 'text-white' : 'opacity-70'}`}>{count}人</div>
                                   ) : (
-                                    <div className="text-[9px] mt-1 opacity-40">空</div>
+                                    <div className="text-[8px] mt-0.5 opacity-40">空</div>
                                   )}
                                 </button>
                               )
@@ -757,10 +752,9 @@ export default function LoveRunTracker() {
                   </div>
 
                   {/* 底部操作列 */}
-                  <div className="sticky bottom-0 bg-white rounded-b-2xl border-t px-5 py-4">
-                    {/* 錯誤訊息 */}
+                  <div className="border-t px-4 sm:px-5 py-3 sm:py-4 shrink-0">
                     {signupError && (
-                      <div className="mb-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600 flex items-center gap-2">
+                      <div className="mb-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs sm:text-sm text-red-600 flex items-center gap-2">
                         ⚠️ {signupError}
                       </div>
                     )}
@@ -772,12 +766,12 @@ export default function LoveRunTracker() {
                         <button
                           onClick={() => { setSignupStep('name'); setSignupSelectedSlots([]); setSignupError('') }}
                           disabled={signupSubmitting}
-                          className="px-4 py-2 rounded-xl border text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                          className="px-3 sm:px-4 py-2 rounded-xl border text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                         >取消</button>
                         <button
                           onClick={submitSignup}
                           disabled={signupSelectedSlots.length === 0 || signupSubmitting}
-                          className="px-6 py-2 rounded-xl bg-blue-600 disabled:bg-gray-300 disabled:text-gray-400 text-white text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 min-w-[100px] justify-center"
+                          className="px-4 sm:px-6 py-2 rounded-xl bg-blue-600 disabled:bg-gray-300 disabled:text-gray-400 text-white text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 min-w-[90px] justify-center"
                         >
                           {signupSubmitting ? (
                             <>
@@ -862,30 +856,20 @@ export default function LoveRunTracker() {
                   <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>5人+</span>
                 </div>
                 {/* 依 TIME_BLOCKS 軸呈現 */}
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {TIME_BLOCKS.map((block) => {
                     const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
-                    // 只顯示有登記的 block（若全空可跳過，但保留所有 block 方便對照）
-                    const labelStyle = {
-                      period: 'bg-white text-gray-700 border-gray-300',
-                      free:   'bg-gray-100 text-gray-500 border-gray-200',
-                      break:  'bg-gray-50 text-gray-400 border-gray-200',
-                      meal:   'bg-amber-50 text-amber-600 border-amber-200',
-                      rest:   'bg-purple-50 text-purple-500 border-purple-200',
-                      extra:  'bg-teal-50 text-teal-600 border-teal-200',
-                    }
-                    const iconMap = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴', extra: '⏰' }
                     return (
-                      <div key={block.label + block.start} className="flex items-start gap-2 px-2 py-1.5 rounded-xl hover:bg-gray-50">
+                      <div key={block.label + block.start} className="flex items-start gap-1.5 sm:gap-2 px-1.5 sm:px-2 py-1 rounded-xl hover:bg-gray-50">
                         {/* 左側標籤 */}
-                        <div className={`shrink-0 w-16 rounded-lg border text-center py-1.5 leading-tight ${labelStyle[block.type]}`}>
-                          {iconMap[block.type] && <div className="text-sm leading-none mb-0.5">{iconMap[block.type]}</div>}
-                          <div className="text-xs font-bold">{block.label}</div>
-                          <div className="text-[9px] opacity-60 mt-0.5">{block.start}</div>
-                          <div className="text-[9px] opacity-60">–{block.end}</div>
+                        <div className={`shrink-0 w-12 sm:w-14 rounded-lg border text-center py-1 leading-tight ${LABEL_STYLE[block.type]}`}>
+                          {ICON_MAP[block.type] && <div className="text-xs leading-none mb-0.5">{ICON_MAP[block.type]}</div>}
+                          <div className="text-[10px] sm:text-xs font-bold">{block.label}</div>
+                          <div className="text-[8px] opacity-60 mt-0.5">{block.start}</div>
+                          <div className="text-[8px] opacity-60">–{block.end}</div>
                         </div>
-                        {/* 右側格子（唯讀） */}
-                        <div className="flex flex-wrap gap-1 flex-1">
+                        {/* 右側格子（唯讀，hover 顯示 tooltip） */}
+                        <div className="flex flex-wrap gap-0.5 sm:gap-1 flex-1">
                           {blockSlots.map(slot => {
                             const sgs = signups.filter(s => s.slots.includes(slot))
                             const count = sgs.length
@@ -901,17 +885,17 @@ export default function LoveRunTracker() {
                               <div
                                 key={slot}
                                 className={`relative border rounded-lg text-center cursor-default transition-shadow ${cellCls} ${isHovered && count > 0 ? 'ring-2 ring-offset-1 ring-blue-300 z-10' : ''}`}
-                                style={{ width: '46px', height: '46px' }}
+                                style={{ width: '36px', height: '36px' }}
                                 onMouseEnter={() => setHoveredSlot(slot)}
                                 onMouseLeave={() => setHoveredSlot(null)}
                               >
-                                <div className="text-[11px] font-bold leading-none pt-1">{slot}</div>
+                                <div className="text-[10px] font-bold leading-none pt-1">{slot}</div>
                                 {count > 0 ? (
-                                  <div className="text-[10px] font-semibold mt-1 opacity-70">{count}人</div>
+                                  <div className="text-[9px] font-semibold mt-0.5 opacity-70">{count}人</div>
                                 ) : (
-                                  <div className="text-[9px] mt-1 opacity-30">空</div>
+                                  <div className="text-[8px] mt-0.5 opacity-30">空</div>
                                 )}
-                                {/* Tooltip：顯示已登記名單 */}
+                                {/* Tooltip */}
                                 {isHovered && count > 0 && (
                                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
                                     <div className="bg-gray-900 text-white rounded-xl shadow-xl px-3 py-2 text-left whitespace-nowrap">
@@ -925,7 +909,6 @@ export default function LoveRunTracker() {
                                         ))}
                                       </div>
                                     </div>
-                                    {/* 箭頭 */}
                                     <div className="w-2 h-2 bg-gray-900 rotate-45 mx-auto -mt-1"/>
                                   </div>
                                 )}
@@ -1294,29 +1277,18 @@ export default function LoveRunTracker() {
 
                   {/* ── 依時段（TIME_BLOCKS 軸）── */}
                   {adminViewMode === 'slot' && (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       {TIME_BLOCKS.map((block) => {
                         const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
-                        const labelStyle = {
-                          period: 'bg-white text-gray-700 border-gray-300',
-                          free:   'bg-gray-100 text-gray-500 border-gray-200',
-                          break:  'bg-gray-50 text-gray-400 border-gray-200',
-                          meal:   'bg-amber-50 text-amber-600 border-amber-200',
-                          rest:   'bg-purple-50 text-purple-500 border-purple-200',
-                          extra:  'bg-teal-50 text-teal-600 border-teal-200',
-                        }
-                        const iconMap = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴', extra: '⏰' }
                         return (
-                          <div key={block.label + block.start} className="flex items-start gap-2 px-2 py-1.5 rounded-xl hover:bg-gray-50">
-                            {/* 左側標籤 */}
-                            <div className={`shrink-0 w-16 rounded-lg border text-center py-1.5 leading-tight ${labelStyle[block.type]}`}>
-                              {iconMap[block.type] && <div className="text-sm leading-none mb-0.5">{iconMap[block.type]}</div>}
-                              <div className="text-xs font-bold">{block.label}</div>
-                              <div className="text-[9px] opacity-60 mt-0.5">{block.start}</div>
-                              <div className="text-[9px] opacity-60">–{block.end}</div>
+                          <div key={block.label + block.start} className="flex items-start gap-1.5 sm:gap-2 px-1.5 sm:px-2 py-1 rounded-xl hover:bg-gray-50">
+                            <div className={`shrink-0 w-12 sm:w-14 rounded-lg border text-center py-1 leading-tight ${LABEL_STYLE[block.type]}`}>
+                              {ICON_MAP[block.type] && <div className="text-xs leading-none mb-0.5">{ICON_MAP[block.type]}</div>}
+                              <div className="text-[10px] sm:text-xs font-bold">{block.label}</div>
+                              <div className="text-[8px] opacity-60 mt-0.5">{block.start}</div>
+                              <div className="text-[8px] opacity-60">–{block.end}</div>
                             </div>
-                            {/* 右側格子，可點擊姓名開啟編輯 */}
-                            <div className="flex flex-wrap gap-1 flex-1">
+                            <div className="flex flex-wrap gap-0.5 sm:gap-1 flex-1">
                               {blockSlots.map(slot => {
                                 const sgs = signups.filter(s => s.slots.includes(slot))
                                 const count = sgs.length
@@ -1328,24 +1300,20 @@ export default function LoveRunTracker() {
                                   ? 'bg-orange-50 border-orange-300 text-orange-700'
                                   : 'bg-red-50 border-red-300 text-red-700'
                                 return (
-                                  <div
-                                    key={slot}
-                                    className={`border rounded-lg text-center ${cellCls}`}
-                                    style={{ width: '60px', minHeight: '46px' }}
-                                  >
-                                    <div className="text-[11px] font-bold leading-none pt-1">{slot}</div>
+                                  <div key={slot} className={`border rounded-lg text-center ${cellCls}`}
+                                    style={{ width: '44px', minHeight: '44px' }}>
+                                    <div className="text-[10px] font-bold leading-none pt-1">{slot}</div>
                                     {count > 0 ? (
-                                      <div className="text-[10px] font-semibold opacity-60 mt-0.5">{count}人</div>
+                                      <div className="text-[9px] font-semibold opacity-60 mt-0.5">{count}人</div>
                                     ) : (
-                                      <div className="text-[9px] opacity-30 mt-0.5">空</div>
+                                      <div className="text-[8px] opacity-30 mt-0.5">空</div>
                                     )}
                                     {sgs.length > 0 && (
                                       <div className="mt-0.5 px-0.5 pb-1">
                                         {sgs.map(s => (
-                                          <button
-                                            key={s.id}
+                                          <button key={s.id}
                                             onClick={() => { setAdminGridToken(s.token); setAdminGridSlots([...s.slots]) }}
-                                            className="block w-full text-[9px] leading-tight truncate hover:underline font-medium"
+                                            className="block w-full text-[8px] leading-tight truncate hover:underline font-medium"
                                             title={`點擊編輯 ${s.name} 的登記`}
                                           >{s.name}</button>
                                         ))}
@@ -1398,30 +1366,26 @@ export default function LoveRunTracker() {
               }
 
               return (
-                <div className="fixed inset-0 z-40 bg-black/50 flex items-start justify-center overflow-y-auto py-4 px-2">
-                  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl">
+                <div className="fixed inset-0 z-40 bg-black/50 flex items-end sm:items-start justify-center sm:overflow-y-auto sm:py-4 sm:px-4">
+                  <div className="bg-white w-full sm:rounded-2xl sm:shadow-2xl sm:max-w-2xl
+                    rounded-t-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
                     {/* 標題 */}
-                    <div className="sticky top-0 bg-white rounded-t-2xl px-5 py-4 border-b flex items-center justify-between z-10">
-                      <div>
-                        <span className="font-bold text-gray-800 text-lg">{rec.name}</span>
+                    <div className="px-4 sm:px-5 py-3 sm:py-4 border-b flex items-center justify-between shrink-0">
+                      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 rounded-full sm:hidden"/>
+                      <div className="mt-2 sm:mt-0">
+                        <span className="font-bold text-gray-800 text-base sm:text-lg">{rec.name}</span>
                         <span className="text-gray-500 text-sm ml-2">修改時段登記</span>
-                        <span className="text-xs text-gray-400 ml-2 font-mono">#{rec.token}</span>
+                        <span className="text-xs text-gray-400 ml-2 font-mono hidden sm:inline">#{rec.token}</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
-                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
-                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
-                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>3–4人</span>
-                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>5人+</span>
-                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>已選</span>
-                        </div>
-                        <button onClick={() => { setAdminGridToken(null); setAdminGridSlots([]) }} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+                      <div className="flex items-center gap-2">
+                        <div className="hidden sm:block"><Legend /></div>
+                        <button onClick={() => { setAdminGridToken(null); setAdminGridSlots([]) }} className="text-gray-400 hover:text-gray-600 text-2xl leading-none ml-2">×</button>
                       </div>
                     </div>
 
                     {/* 已選提示 */}
                     {adminGridSlots.length > 0 && (
-                      <div className="mx-5 mt-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 flex flex-wrap gap-2 items-center">
+                      <div className="mx-3 sm:mx-5 mt-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 flex flex-wrap gap-1.5 items-center shrink-0">
                         <span className="text-xs text-blue-500 mr-1">已選：</span>
                         {[...adminGridSlots].sort().map(s => (
                           <span key={s} className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -1432,55 +1396,35 @@ export default function LoveRunTracker() {
                       </div>
                     )}
 
-                    {/* 時間軸 */}
-                    <div className="p-4 space-y-1.5">
+                    {/* 時間軸（可捲動） */}
+                    <div className="overflow-y-auto flex-1 p-3 sm:p-4 space-y-1">
                       {TIME_BLOCKS.map((block) => {
                         const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
                         const anySelected = blockSlots.some(s => adminGridSlots.includes(s))
-                        const labelStyle = {
-                          period: anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300',
-                          free:   anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-100 text-gray-500 border-gray-200',
-                          break:  anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-400 border-gray-200',
-                          meal:   anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-amber-50 text-amber-600 border-amber-200',
-                          rest:   anySelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-purple-50 text-purple-500 border-purple-200',
-                        }
-                        const iconMap = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴' }
+                        const activeLabelStyle = anySelected ? 'bg-blue-600 text-white border-blue-600' : LABEL_STYLE[block.type]
                         return (
                           <div key={block.label + block.start}
-                            className={`flex items-start gap-2 px-2 py-2 rounded-xl transition-colors ${anySelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                            <div className={`shrink-0 w-16 rounded-lg border text-center py-1.5 leading-tight ${labelStyle[block.type]}`}>
-                              {iconMap[block.type] && <div className="text-sm leading-none mb-0.5">{iconMap[block.type]}</div>}
-                              <div className="text-xs font-bold">{block.label}</div>
-                              <div className="text-[9px] opacity-60 mt-0.5">{block.start}</div>
-                              <div className="text-[9px] opacity-60">–{block.end}</div>
+                            className={`flex items-start gap-1.5 sm:gap-2 px-1.5 sm:px-2 py-1.5 rounded-xl transition-colors ${anySelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                            <div className={`shrink-0 w-12 sm:w-14 rounded-lg border text-center py-1 leading-tight ${activeLabelStyle}`}>
+                              {ICON_MAP[block.type] && <div className="text-xs leading-none mb-0.5">{ICON_MAP[block.type]}</div>}
+                              <div className="text-[10px] sm:text-xs font-bold">{block.label}</div>
+                              <div className="text-[8px] opacity-60 mt-0.5">{block.start}</div>
+                              <div className="text-[8px] opacity-60">–{block.end}</div>
                             </div>
                             <div className="flex flex-wrap gap-1 flex-1">
                               {blockSlots.map(slot => {
                                 const st = adminSlotStatus(slot)
                                 const names = signups.filter(s => s.token !== adminGridToken && s.slots.includes(slot)).map(s => s.name)
                                 return (
-                                  <button
-                                    key={slot}
+                                  <button key={slot}
                                     onClick={() => toggleAdminSlot(slot)}
                                     title={names.length > 0 ? `${slot}：${names.join('、')}` : slot}
                                     className={`border rounded-lg text-center transition-all ${adminCellClass(slot)}`}
-                                    style={{ width: '46px', height: '46px' }}
+                                    style={{ width: '38px', height: '38px' }}
                                   >
-                                    <div className="text-[11px] font-bold leading-none">{slot}</div>
-                                    <div className="flex justify-center gap-0.5 mt-1.5">
-                                      {Array.from({ length: MAX_PER_SLOT }).map((_, i) => {
-                                        const filled = st === 'selected' ? i < (names.length + 1) : i < names.length
-                                        return (
-                                          <span key={i} className={`inline-block w-1.5 h-1.5 rounded-full ${
-                                            filled
-                                              ? (st === 'selected' ? 'bg-white' : st === 'full' ? 'bg-red-400' : 'bg-orange-400')
-                                              : (st === 'selected' ? 'bg-blue-300' : 'bg-gray-200')
-                                          }`}/>
-                                        )
-                                      })}
-                                    </div>
+                                    <div className="text-[10px] font-bold leading-none">{slot}</div>
                                     {names.length > 0 && (
-                                      <div className="text-[8px] leading-tight mt-0.5 truncate px-0.5 opacity-80">{names.join(' ')}</div>
+                                      <div className="text-[8px] leading-tight mt-0.5 truncate px-0.5 opacity-80">{names[0]}{names.length > 1 ? `+${names.length-1}` : ''}</div>
                                     )}
                                   </button>
                                 )
@@ -1492,22 +1436,22 @@ export default function LoveRunTracker() {
                     </div>
 
                     {/* 底部 */}
-                    <div className="sticky bottom-0 bg-white rounded-b-2xl border-t px-5 py-4 flex items-center justify-between gap-3">
+                    <div className="border-t px-4 sm:px-5 py-3 sm:py-4 flex items-center justify-between gap-3 shrink-0">
                       <div className="text-sm text-gray-500">
                         已選 <span className="font-bold text-blue-600">{adminGridSlots.length}</span> 個時段
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={async () => { if (confirm(`確定刪除「${rec.name}」的所有登記？`)) { await deleteDoc(doc(db, 'signups', adminGridToken)); setAdminGridToken(null); setAdminGridSlots([]) } }}
-                          className="px-4 py-2 rounded-xl border border-red-200 text-sm text-red-500 hover:bg-red-50"
+                          className="px-3 sm:px-4 py-2 rounded-xl border border-red-200 text-sm text-red-500 hover:bg-red-50"
                         >刪除此人</button>
                         <button
                           onClick={() => { setAdminGridToken(null); setAdminGridSlots([]) }}
-                          className="px-4 py-2 rounded-xl border text-sm text-gray-600 hover:bg-gray-50"
+                          className="px-3 sm:px-4 py-2 rounded-xl border text-sm text-gray-600 hover:bg-gray-50"
                         >取消</button>
                         <button
                           onClick={saveAdminGrid}
-                          className="px-6 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+                          className="px-4 sm:px-6 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
                         >儲存修改</button>
                       </div>
                     </div>
