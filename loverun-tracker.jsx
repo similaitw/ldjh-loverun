@@ -121,7 +121,7 @@ export default function LoveRunTracker() {
   const [adminUnlocked, setAdminUnlocked] = useState(false)
   const [adminPwInput, setAdminPwInput] = useState('')
   const [adminPwError, setAdminPwError] = useState(false)
-  const ADMIN_PASSWORD = 'ltjh@9542075'
+  const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD
 
   // 管理頁報名視窗
   const [adminGridToken, setAdminGridToken] = useState(null)   // 正在管理的 token
