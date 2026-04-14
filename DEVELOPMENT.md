@@ -16,7 +16,8 @@
 | 框架 | Next.js 14.0.4 |
 | UI | React 18.2.0 + Tailwind CSS 3.3.6 |
 | 資料庫 | Firebase Firestore（雲端即時同步） |
-| 部署 | Vercel（CLI 部署，非 GitHub 自動部署） |
+| 部署 | Vercel（CLI 部署）/ Netlify（GitHub 自動部署） |
+| 離線快取 | Firestore IndexedDB persistence |
 
 ---
 
@@ -34,6 +35,7 @@ ldjh-loverun/
 ├── loverun-tracker.jsx      # 核心元件（所有邏輯都在這）
 ├── .env.local               # 本地環境變數（不進 git）
 ├── .gitignore
+├── netlify.toml             # Netlify 部署設定
 ├── next.config.js
 ├── package.json
 ├── postcss.config.js
@@ -54,14 +56,24 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
+NEXT_PUBLIC_ADMIN_PASSWORD=...
 ```
 
 > 實際值請從 Firebase Console → 專案設定 → 您的應用程式 取得，或複製既有的 `.env.local`。
+> `NEXT_PUBLIC_ADMIN_PASSWORD` 為管理頁登入密碼。
 
 ### Vercel 生產環境
 
 Vercel 專案 `luodong-love-run` → Settings → Environment Variables  
-（已設定上述六個變數）
+（已設定上述七個變數）
+
+### Netlify 生產環境
+
+Netlify 站台 → Site configuration → Environment variables  
+（需設定上述七個變數）
+
+> `NEXT_PUBLIC_*` 變數會被 Next.js 打包進前端 JS bundle（設計如此）。  
+> `netlify.toml` 已設定 `SECRETS_SCAN_OMIT_KEYS` 避免 Netlify secrets scanning 誤判阻擋 build。
 
 ---
 
@@ -137,6 +149,20 @@ service cloud.firestore {
 | 紅 | 5 人以上 |
 | 藍 | 已選取（自己） |
 
+### 響應式佈局
+
+| 裝置 | 寬度 | 佈局特徵 |
+|---|---|---|
+| 手機 | < 640px | 彈窗為 bottom-sheet（圓角上方滑出）、格子 38px、標籤 w-12 |
+| 平板 | 640–1023px | 彈窗置中、格子 38px、標籤 w-14 |
+| PC | ≥ 1024px | 同平板，主內容 max-w-3xl 置中 |
+
+### 共用常數
+
+- `LABEL_STYLE`：各時段類型的標籤樣式（顏色、邊框）
+- `ICON_MAP`：各時段類型的圖示（☕ 🍱 😴 ⏰）
+- `Legend` 元件：圖例說明（綠黃橙紅 = 人數）
+
 ### 重要 State
 
 ```javascript
@@ -151,7 +177,7 @@ adminViewMode    // 'person' | 'slot'（管理頁報名檢視方式）
 
 ### 管理密碼
 
-> 管理密碼定義在 `loverun-tracker.jsx` 的 `ADMIN_PASSWORD` 常數中，請勿公開。
+> 管理密碼透過 `NEXT_PUBLIC_ADMIN_PASSWORD` 環境變數注入，於 `loverun-tracker.jsx` 中讀取。請勿將密碼明文寫入程式碼或文件。
 
 ---
 
@@ -187,13 +213,19 @@ npm run build
 
 ---
 
-## 部署到 Vercel
+## 部署
 
-> 注意：此專案使用 CLI 部署，不使用 GitHub 自動部署（帳號 email 不符問題）
+### Vercel（CLI 部署）
+
+> 注意：Vercel 使用 CLI 部署，不使用 GitHub 自動部署（帳號 email 不符問題）
 
 ```bash
 npx vercel --prod
 ```
+
+### Netlify（GitHub 自動部署）
+
+GitHub push 後 Netlify 自動觸發部署。設定檔為 `netlify.toml`，使用 `@netlify/plugin-nextjs` 插件。
 
 ---
 
@@ -202,6 +234,7 @@ npx vercel --prod
 1. **Vercel 自動部署不可用**：GitHub commit 作者 email（similai@gmail.com）與 Vercel team 帳號不符，每次更新需手動執行 `npx vercel --prod`
 2. **管理密碼在前端**：管理密碼透過 `NEXT_PUBLIC_ADMIN_PASSWORD` 環境變數注入，僅作前端隱藏，非真正安全。若需更高安全性需加 Firebase Authentication
 3. **Firestore 規則全開**：目前任何人都可讀寫，依賴前端密碼保護管理功能
+4. **Netlify secrets scanning**：`NEXT_PUBLIC_*` 變數被 Next.js 打包進 webpack bundle，Netlify 會誤判為洩漏密鑰。已透過 `SECRETS_SCAN_OMIT_KEYS` 排除
 
 ---
 
@@ -222,3 +255,7 @@ npx vercel --prod
 - [x] 大螢幕展示模式（全螢幕）
 - [x] Firebase Firestore 即時同步
 - [x] 環境變數保護 API key
+- [x] Firestore 離線快取（IndexedDB persistence）
+- [x] UI 美化（漸層配色、統計卡片、慶祝頁面）
+- [x] 響應式佈局（手機 bottom-sheet、平板/PC 適配）
+- [x] Netlify 部署支援（secrets scan 排除）

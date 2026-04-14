@@ -77,6 +77,21 @@ const BEEP_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAE
 // 每時段不限人數，純顯示用
 const MAX_PER_SLOT = 0 // 已停用，保留供參考
 
+// ── 主題 Skin ──
+const SKINS = {
+  ocean:  { name: '深海藍', header: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #0891b2 100%)', page: 'from-slate-100 via-blue-50 to-emerald-50', accent: 'blue', tabActive: 'bg-white text-blue-700 shadow-md', tabInactive: 'text-blue-100 hover:bg-white/20', subtextHeader: 'text-blue-200', badgeColor: 'text-yellow-300', btnGrad: 'from-blue-600 to-blue-500', btnHover: 'hover:from-blue-700 hover:to-blue-600', cardGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #0891b2 100%)', adminGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)', statCards: ['from-blue-500 to-blue-600','from-emerald-500 to-emerald-600','from-violet-500 to-violet-600'] },
+  sunset: { name: '日落橙', header: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 50%, #f59e0b 100%)', page: 'from-orange-50 via-amber-50 to-yellow-50', accent: 'orange', tabActive: 'bg-white text-orange-700 shadow-md', tabInactive: 'text-orange-100 hover:bg-white/20', subtextHeader: 'text-orange-200', badgeColor: 'text-yellow-200', btnGrad: 'from-orange-600 to-amber-500', btnHover: 'hover:from-orange-700 hover:to-amber-600', cardGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 60%, #f59e0b 100%)', adminGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)', statCards: ['from-orange-500 to-orange-600','from-amber-500 to-amber-600','from-rose-500 to-rose-600'] },
+  forest: { name: '森林綠', header: 'linear-gradient(135deg, #14532d 0%, #16a34a 50%, #22d3ee 100%)', page: 'from-green-50 via-emerald-50 to-teal-50', accent: 'green', tabActive: 'bg-white text-green-700 shadow-md', tabInactive: 'text-green-100 hover:bg-white/20', subtextHeader: 'text-green-200', badgeColor: 'text-yellow-300', btnGrad: 'from-green-600 to-emerald-500', btnHover: 'hover:from-green-700 hover:to-emerald-600', cardGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 60%, #22d3ee 100%)', adminGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)', statCards: ['from-green-500 to-green-600','from-teal-500 to-teal-600','from-cyan-500 to-cyan-600'] },
+  sakura: { name: '櫻花粉', header: 'linear-gradient(135deg, #831843 0%, #db2777 50%, #f472b6 100%)', page: 'from-pink-50 via-rose-50 to-fuchsia-50', accent: 'pink', tabActive: 'bg-white text-pink-700 shadow-md', tabInactive: 'text-pink-100 hover:bg-white/20', subtextHeader: 'text-pink-200', badgeColor: 'text-yellow-200', btnGrad: 'from-pink-600 to-rose-500', btnHover: 'hover:from-pink-700 hover:to-rose-600', cardGrad: 'linear-gradient(135deg, #831843 0%, #db2777 60%, #f472b6 100%)', adminGrad: 'linear-gradient(135deg, #831843 0%, #db2777 100%)', statCards: ['from-pink-500 to-pink-600','from-rose-500 to-rose-600','from-fuchsia-500 to-fuchsia-600'] },
+  night:  { name: '暗夜紫', header: 'linear-gradient(135deg, #312e81 0%, #7c3aed 50%, #a855f7 100%)', page: 'from-violet-50 via-purple-50 to-indigo-50', accent: 'purple', tabActive: 'bg-white text-purple-700 shadow-md', tabInactive: 'text-purple-100 hover:bg-white/20', subtextHeader: 'text-purple-200', badgeColor: 'text-yellow-300', btnGrad: 'from-purple-600 to-violet-500', btnHover: 'hover:from-purple-700 hover:to-violet-600', cardGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 60%, #a855f7 100%)', adminGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 100%)', statCards: ['from-purple-500 to-purple-600','from-violet-500 to-violet-600','from-indigo-500 to-indigo-600'] },
+}
+
+// ── 往年回顧資料 ──
+const PAST_EVENTS = [
+  { year: '往年', type: 'video', title: '羅東愛心路跑精彩回顧', url: 'https://www.youtube.com/watch?v=9HWyDIqItB4', embedId: '9HWyDIqItB4' },
+  { year: '往年', type: 'album', title: '活動照片集', url: 'https://photos.app.goo.gl/ofwnpgqwH3dgF2mB7' },
+]
+
 export default function LoveRunTracker() {
   const [participants, setParticipants] = useState([])
   const [schedules, setSchedules] = useState([])
@@ -85,6 +100,7 @@ export default function LoveRunTracker() {
   const [signups, setSignups] = useState([])
   const [eventName, setEventName] = useState('羅東愛心路跑')
   const [activeTab, setActiveTab] = useState('signup')
+  const [skinKey, setSkinKey] = useState('ocean')
   const [currentParticipant, setCurrentParticipant] = useState('')
   const [currentSchedule, setCurrentSchedule] = useState('')
   const [currentTime, setCurrentTime] = useState('')
@@ -140,12 +156,17 @@ export default function LoveRunTracker() {
       if (p) setParticipants(JSON.parse(p))
       if (sc) setSchedules(JSON.parse(sc))
       if (lr) setLapRecords(JSON.parse(lr))
+      const sk = localStorage.getItem('loverun_skin')
+      if (sk && SKINS[sk]) setSkinKey(sk)
     } catch (e) {}
   }, [])
 
   useEffect(() => { localStorage.setItem('loverun_participants', JSON.stringify(participants)) }, [participants])
   useEffect(() => { localStorage.setItem('loverun_schedules', JSON.stringify(schedules)) }, [schedules])
   useEffect(() => { localStorage.setItem('loverun_lapRecords', JSON.stringify(lapRecords)) }, [lapRecords])
+  useEffect(() => { localStorage.setItem('loverun_skin', skinKey) }, [skinKey])
+
+  const skin = SKINS[skinKey]
 
   // ── Firestore 即時監聽：報名資料 ──
   useEffect(() => {
@@ -508,32 +529,45 @@ export default function LoveRunTracker() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-emerald-50">
+    <div className={`min-h-screen bg-gradient-to-br ${skin.page}`}>
       <audio ref={audioRef} preload="auto"><source src={BEEP_SOUND} type="audio/wav" /></audio>
 
       {/* 標題列 */}
       <header className="sticky top-0 z-10 shadow-lg"
-        style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #0891b2 100%)' }}>
+        style={{ background: skin.header }}>
         <div className="max-w-3xl mx-auto px-4 pt-3 pb-1 flex items-center justify-between gap-4">
           <button onClick={() => setActiveTab('signup')} className="text-left hover:opacity-90 transition-opacity flex items-center gap-3 min-w-0">
             <span className="text-2xl sm:text-3xl shrink-0">🏃‍♀️</span>
             <div className="min-w-0">
               <h1 className="text-base sm:text-xl font-extrabold text-white leading-tight tracking-wide truncate">{eventName}</h1>
-              <p className="text-[11px] text-blue-200 font-medium">時段登記系統</p>
+              <p className={`text-[11px] ${skin.subtextHeader} font-medium`}>時段登記系統</p>
             </div>
           </button>
-          <div className="text-right shrink-0">
-            <div className="text-xl sm:text-2xl font-mono font-bold text-white tabular-nums">{currentTime}</div>
-            <div className="text-[11px] text-blue-200">已登記 <span className="font-bold text-yellow-300">{signups.length}</span> 人</div>
+          <div className="flex items-center gap-3">
+            {/* 主題切換 */}
+            <div className="relative group">
+              <button className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-sm transition-colors" title="切換主題">🎨</button>
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 p-2 hidden group-hover:block min-w-[120px] z-50">
+                {Object.entries(SKINS).map(([key, s]) => (
+                  <button key={key} onClick={() => setSkinKey(key)}
+                    className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2 ${skinKey === key ? 'bg-gray-100 font-bold' : 'hover:bg-gray-50'}`}>
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ background: s.header }}/>
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-xl sm:text-2xl font-mono font-bold text-white tabular-nums">{currentTime}</div>
+              <div className={`text-[11px] ${skin.subtextHeader}`}>已登記 <span className={`font-bold ${skin.badgeColor}`}>{signups.length}</span> 人</div>
+            </div>
           </div>
         </div>
         <div className="max-w-3xl mx-auto px-3 flex gap-1 py-2 overflow-x-auto">
           {TABS.map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
-                activeTab === tab.key
-                  ? 'bg-white text-blue-700 shadow-md'
-                  : 'text-blue-100 hover:bg-white/20'
+                activeTab === tab.key ? skin.tabActive : skin.tabInactive
               }`}>{tab.label}</button>
           ))}
         </div>
@@ -565,9 +599,9 @@ export default function LoveRunTracker() {
                 {/* 統計摘要列（手機橫排3欄，較寬時也是橫排） */}
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                   {[
-                    { label: '已登記人數', value: signups.length, color: 'from-blue-500 to-blue-600', icon: '👥' },
-                    { label: '已佔用時段', value: [...new Set(signups.flatMap(s => s.slots))].length, color: 'from-emerald-500 to-emerald-600', icon: '📅' },
-                    { label: '可用時段', value: Math.max(0, TIME_SLOTS.length - [...new Set(signups.flatMap(s => s.slots))].length), color: 'from-violet-500 to-violet-600', icon: '✨' },
+                    { label: '已登記人數', value: signups.length, color: skin.statCards[0], icon: '👥' },
+                    { label: '已佔用時段', value: [...new Set(signups.flatMap(s => s.slots))].length, color: skin.statCards[1], icon: '📅' },
+                    { label: '可用時段', value: Math.max(0, TIME_SLOTS.length - [...new Set(signups.flatMap(s => s.slots))].length), color: skin.statCards[2], icon: '✨' },
                   ].map(({ label, value, color, icon }) => (
                     <div key={label} className={`bg-gradient-to-br ${color} rounded-2xl p-3 text-white text-center shadow-md`}>
                       <div className="text-base sm:text-lg mb-0.5">{icon}</div>
@@ -603,7 +637,7 @@ export default function LoveRunTracker() {
                     <button
                       onClick={() => { if (signupNameInput.trim()) setSignupStep('grid') }}
                       disabled={!signupNameInput.trim()}
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 text-white py-3 rounded-xl text-base font-bold hover:from-blue-700 hover:to-blue-600 transition-all shadow-md disabled:shadow-none"
+                      className={`w-full bg-gradient-to-r ${skin.btnGrad} disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 text-white py-3 rounded-xl text-base font-bold ${skin.btnHover} transition-all shadow-md disabled:shadow-none`}
                     >選擇時段 →</button>
                   </div>
 
@@ -795,7 +829,7 @@ export default function LoveRunTracker() {
               <div className="max-w-md mx-auto mt-6">
                 {/* 慶祝卡片 */}
                 <div className="rounded-3xl shadow-xl overflow-hidden mb-4"
-                  style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #0891b2 100%)' }}>
+                  style={{ background: skin.cardGrad }}>
                   <div className="px-6 pt-8 pb-6 text-center">
                     <div className="text-5xl mb-3">{editRecord ? '✏️' : '🎉'}</div>
                     <h2 className="text-2xl font-black text-white mb-1">
@@ -827,7 +861,7 @@ export default function LoveRunTracker() {
                   </div>
                   <button
                     onClick={() => copyLink(signupDoneToken)}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-2.5 rounded-xl text-sm font-bold hover:from-blue-700 hover:to-blue-600 transition-all shadow"
+                    className={`w-full bg-gradient-to-r ${skin.btnGrad} text-white py-2.5 rounded-xl text-sm font-bold ${skin.btnHover} transition-all shadow`}
                   >📋 複製修改連結</button>
                   <div className="mt-2 text-[10px] text-gray-300 break-all text-center">{getEditLink(signupDoneToken)}</div>
                 </div>
@@ -922,6 +956,47 @@ export default function LoveRunTracker() {
                 </div>
               </div>
             )}
+
+            {/* ── 往年回顧 ── */}
+            {signupStep === 'name' && !editToken && PAST_EVENTS.length > 0 && (
+              <div className="mt-4 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white text-xs shadow">🎬</span>
+                  <h2 className="font-extrabold text-gray-800">往年活動回顧</h2>
+                </div>
+                <div className="space-y-4">
+                  {PAST_EVENTS.filter(e => e.type === 'video').map((ev, i) => (
+                    <div key={i}>
+                      <h3 className="text-sm font-bold text-gray-600 mb-2 flex items-center gap-1.5">
+                        <span className="text-red-500">▶</span> {ev.title}
+                      </h3>
+                      <div className="relative w-full rounded-xl overflow-hidden shadow-md" style={{ paddingBottom: '56.25%' }}>
+                        <iframe
+                          className="absolute inset-0 w-full h-full"
+                          src={`https://www.youtube.com/embed/${ev.embedId}`}
+                          title={ev.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {PAST_EVENTS.filter(e => e.type === 'album').map((ev, i) => (
+                    <a key={i} href={ev.url} target="_blank" rel="noopener noreferrer"
+                      className="block bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4 hover:shadow-md transition-shadow group">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">📸</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-gray-700 group-hover:text-emerald-700 transition-colors">{ev.title}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">點擊前往 Google 相簿瀏覽</div>
+                        </div>
+                        <span className="text-emerald-400 text-xl shrink-0 group-hover:translate-x-1 transition-transform">→</span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -932,9 +1007,9 @@ export default function LoveRunTracker() {
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               {[
-                ['總圈數', lapRecords.length, 'from-blue-500 to-blue-600', '🏃'],
-                ['參加人數', stats.length, 'from-emerald-500 to-emerald-600', '👥'],
-                ['登記時段數', signups.reduce((a,s)=>a+s.slots.length,0), 'from-violet-500 to-violet-600', '📅'],
+                ['總圈數', lapRecords.length, skin.statCards[0], '🏃'],
+                ['參加人數', stats.length, skin.statCards[1], '👥'],
+                ['登記時段數', signups.reduce((a,s)=>a+s.slots.length,0), skin.statCards[2], '📅'],
               ].map(([label, val, grad, icon]) => (
                 <div key={label} className={`bg-gradient-to-br ${grad} rounded-2xl shadow-lg p-4 text-center text-white`}>
                   <div className="text-2xl mb-1">{icon}</div>
@@ -1041,7 +1116,7 @@ export default function LoveRunTracker() {
           <div className="max-w-sm mx-auto mt-12">
             <div className="rounded-3xl shadow-2xl overflow-hidden">
               <div className="px-8 pt-10 pb-8 text-center"
-                style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)' }}>
+                style={{ background: skin.adminGrad }}>
                 <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-4xl mx-auto mb-4 shadow-inner">🔒</div>
                 <h2 className="text-xl font-black text-white mb-1">管理員驗證</h2>
                 <p className="text-sm text-blue-200">請輸入管理密碼以繼續</p>
@@ -1071,7 +1146,7 @@ export default function LoveRunTracker() {
                     if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
                     else { setAdminPwError(true); setAdminPwInput('') }
                   }}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-3 rounded-xl text-base font-bold hover:from-blue-700 hover:to-blue-600 transition-all shadow-md"
+                  className={`w-full bg-gradient-to-r ${skin.btnGrad} text-white py-3 rounded-xl text-base font-bold ${skin.btnHover} transition-all shadow-md`}
                 >進入管理 →</button>
               </div>
             </div>
@@ -1132,6 +1207,24 @@ export default function LoveRunTracker() {
                         已延長至 {extraEndHour}:00，新增 {(extraEndHour - 16) * 12} 個時段
                       </span>
                     )}
+                  </div>
+                </div>
+                {/* 主題配色 */}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-gray-500 shrink-0 w-20">主題配色</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {Object.entries(SKINS).map(([key, s]) => (
+                      <button
+                        key={key}
+                        onClick={() => setSkinKey(key)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                          skinKey === key ? 'border-gray-800 ring-2 ring-gray-300' : 'border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="w-4 h-4 rounded-full shrink-0 shadow-inner" style={{ background: s.header }}/>
+                        {s.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
