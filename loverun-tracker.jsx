@@ -4,6 +4,12 @@ import {
   collection, doc, onSnapshot,
   setDoc, deleteDoc, writeBatch
 } from 'firebase/firestore'
+import {
+  Activity, Palette, ClipboardList, Monitor, Settings, Users, CalendarCheck, Sparkles,
+  ClipboardSignature, Lightbulb, PartyPopper, Pencil, KeyRound, Copy, BarChart3,
+  FileDown, Clapperboard, Play, Camera, Coffee, Utensils, Moon, Clock, Watch,
+  Lock, Unlock, Check, XCircle, Trash2, AlertTriangle, ChevronRight, ArrowRight, X
+} from 'lucide-react'
 
 // 依結束時間產生時段列表（08:00 起，每5分鐘）
 const generateTimeSlots = (endHour = 16) => {
@@ -69,6 +75,20 @@ const getCurrentTime = () => {
 }
 const getCurrentTimeDisplay = () => new Date().toLocaleTimeString('zh-TW', { hour12: false })
 
+const formatDuration = (seconds) => {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  return [h, m, s].map((v, i) => i === 0 ? String(v).padStart(2, '0') : String(v).padStart(2, '0')).join(':')
+}
+
+const parseTodayTime = (hhmm) => {
+  const [h, m] = hhmm.split(':').map(Number)
+  const now = new Date()
+  const parsed = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0)
+  return parsed.getTime()
+}
+
 // 產生 token（8位隨機英數）
 const genToken = () => Math.random().toString(36).slice(2, 10).toUpperCase()
 
@@ -79,11 +99,11 @@ const MAX_PER_SLOT = 0 // 已停用，保留供參考
 
 // ── 主題 Skin ──
 const SKINS = {
-  ocean:  { name: '深海藍', header: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #0891b2 100%)', page: 'from-slate-200 via-blue-100 to-cyan-100', accent: 'blue', tabActive: 'bg-white text-blue-700 shadow-md', tabInactive: 'text-blue-100 hover:bg-white/20', subtextHeader: 'text-blue-200', badgeColor: 'text-yellow-300', btnGrad: 'from-blue-600 to-blue-500', btnHover: 'hover:from-blue-700 hover:to-blue-600', cardGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #0891b2 100%)', adminGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)', statCards: ['from-blue-500 to-blue-600','from-emerald-500 to-emerald-600','from-violet-500 to-violet-600'] },
-  sunset: { name: '日落橙', header: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 50%, #f59e0b 100%)', page: 'from-orange-100 via-amber-100 to-yellow-100', accent: 'orange', tabActive: 'bg-white text-orange-700 shadow-md', tabInactive: 'text-orange-100 hover:bg-white/20', subtextHeader: 'text-orange-200', badgeColor: 'text-yellow-200', btnGrad: 'from-orange-600 to-amber-500', btnHover: 'hover:from-orange-700 hover:to-amber-600', cardGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 60%, #f59e0b 100%)', adminGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)', statCards: ['from-orange-500 to-orange-600','from-amber-500 to-amber-600','from-rose-500 to-rose-600'] },
-  forest: { name: '森林綠', header: 'linear-gradient(135deg, #14532d 0%, #16a34a 50%, #22d3ee 100%)', page: 'from-green-100 via-emerald-100 to-teal-100', accent: 'green', tabActive: 'bg-white text-green-700 shadow-md', tabInactive: 'text-green-100 hover:bg-white/20', subtextHeader: 'text-green-200', badgeColor: 'text-yellow-300', btnGrad: 'from-green-600 to-emerald-500', btnHover: 'hover:from-green-700 hover:to-emerald-600', cardGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 60%, #22d3ee 100%)', adminGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)', statCards: ['from-green-500 to-green-600','from-teal-500 to-teal-600','from-cyan-500 to-cyan-600'] },
-  sakura: { name: '櫻花粉', header: 'linear-gradient(135deg, #831843 0%, #db2777 50%, #f472b6 100%)', page: 'from-pink-100 via-rose-100 to-fuchsia-100', accent: 'pink', tabActive: 'bg-white text-pink-700 shadow-md', tabInactive: 'text-pink-100 hover:bg-white/20', subtextHeader: 'text-pink-200', badgeColor: 'text-yellow-200', btnGrad: 'from-pink-600 to-rose-500', btnHover: 'hover:from-pink-700 hover:to-rose-600', cardGrad: 'linear-gradient(135deg, #831843 0%, #db2777 60%, #f472b6 100%)', adminGrad: 'linear-gradient(135deg, #831843 0%, #db2777 100%)', statCards: ['from-pink-500 to-pink-600','from-rose-500 to-rose-600','from-fuchsia-500 to-fuchsia-600'] },
-  night:  { name: '暗夜紫', header: 'linear-gradient(135deg, #312e81 0%, #7c3aed 50%, #a855f7 100%)', page: 'from-violet-100 via-purple-100 to-indigo-100', accent: 'purple', tabActive: 'bg-white text-purple-700 shadow-md', tabInactive: 'text-purple-100 hover:bg-white/20', subtextHeader: 'text-purple-200', badgeColor: 'text-yellow-300', btnGrad: 'from-purple-600 to-violet-500', btnHover: 'hover:from-purple-700 hover:to-violet-600', cardGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 60%, #a855f7 100%)', adminGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 100%)', statCards: ['from-purple-500 to-purple-600','from-violet-500 to-violet-600','from-indigo-500 to-indigo-600'] },
+  ocean:  { name: '深海藍', iconColor: 'text-blue-600', header: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #0891b2 100%)', page: 'from-slate-200 via-blue-100 to-cyan-100', accent: 'blue', tabActive: 'bg-white text-blue-700 shadow-md', tabInactive: 'text-blue-100 hover:bg-white/20', subtextHeader: 'text-blue-200', badgeColor: 'text-yellow-300', btnGrad: 'from-blue-600 to-blue-500', btnHover: 'hover:from-blue-700 hover:to-blue-600', cardGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #0891b2 100%)', adminGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)', statCards: ['from-blue-500 to-blue-600','from-emerald-500 to-emerald-600','from-violet-500 to-violet-600'], displayBg: 'linear-gradient(135deg, #0c1929 0%, #1e3a5f 30%, #1d4ed8 70%, #0891b2 100%)', displayAccent: '#38bdf8', displayCard: 'rgba(30,58,95,0.85)' },
+  sunset: { name: '日落橙', iconColor: 'text-orange-600', header: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 50%, #f59e0b 100%)', page: 'from-orange-100 via-amber-100 to-yellow-100', accent: 'orange', tabActive: 'bg-white text-orange-700 shadow-md', tabInactive: 'text-orange-100 hover:bg-white/20', subtextHeader: 'text-orange-200', badgeColor: 'text-yellow-200', btnGrad: 'from-orange-600 to-amber-500', btnHover: 'hover:from-orange-700 hover:to-amber-600', cardGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 60%, #f59e0b 100%)', adminGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)', statCards: ['from-orange-500 to-orange-600','from-amber-500 to-amber-600','from-rose-500 to-rose-600'], displayBg: 'linear-gradient(135deg, #431407 0%, #7c2d12 30%, #ea580c 70%, #f59e0b 100%)', displayAccent: '#fb923c', displayCard: 'rgba(124,45,18,0.85)' },
+  forest: { name: '森林綠', iconColor: 'text-green-600', header: 'linear-gradient(135deg, #14532d 0%, #16a34a 50%, #22d3ee 100%)', page: 'from-green-100 via-emerald-100 to-teal-100', accent: 'green', tabActive: 'bg-white text-green-700 shadow-md', tabInactive: 'text-green-100 hover:bg-white/20', subtextHeader: 'text-green-200', badgeColor: 'text-yellow-300', btnGrad: 'from-green-600 to-emerald-500', btnHover: 'hover:from-green-700 hover:to-emerald-600', cardGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 60%, #22d3ee 100%)', adminGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)', statCards: ['from-green-500 to-green-600','from-teal-500 to-teal-600','from-cyan-500 to-cyan-600'], displayBg: 'linear-gradient(135deg, #052e16 0%, #14532d 30%, #16a34a 70%, #22d3ee 100%)', displayAccent: '#4ade80', displayCard: 'rgba(20,83,45,0.85)' },
+  sakura: { name: '櫻花粉', iconColor: 'text-pink-600', header: 'linear-gradient(135deg, #831843 0%, #db2777 50%, #f472b6 100%)', page: 'from-pink-100 via-rose-100 to-fuchsia-100', accent: 'pink', tabActive: 'bg-white text-pink-700 shadow-md', tabInactive: 'text-pink-100 hover:bg-white/20', subtextHeader: 'text-pink-200', badgeColor: 'text-yellow-200', btnGrad: 'from-pink-600 to-rose-500', btnHover: 'hover:from-pink-700 hover:to-rose-600', cardGrad: 'linear-gradient(135deg, #831843 0%, #db2777 60%, #f472b6 100%)', adminGrad: 'linear-gradient(135deg, #831843 0%, #db2777 100%)', statCards: ['from-pink-500 to-pink-600','from-rose-500 to-rose-600','from-fuchsia-500 to-fuchsia-600'], displayBg: 'linear-gradient(135deg, #500724 0%, #831843 30%, #db2777 70%, #f472b6 100%)', displayAccent: '#f9a8d4', displayCard: 'rgba(131,24,67,0.85)' },
+  night:  { name: '暗夜紫', iconColor: 'text-purple-600', header: 'linear-gradient(135deg, #312e81 0%, #7c3aed 50%, #a855f7 100%)', page: 'from-violet-100 via-purple-100 to-indigo-100', accent: 'purple', tabActive: 'bg-white text-purple-700 shadow-md', tabInactive: 'text-purple-100 hover:bg-white/20', subtextHeader: 'text-purple-200', badgeColor: 'text-yellow-300', btnGrad: 'from-purple-600 to-violet-500', btnHover: 'hover:from-purple-700 hover:to-violet-600', cardGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 60%, #a855f7 100%)', adminGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 100%)', statCards: ['from-purple-500 to-purple-600','from-violet-500 to-violet-600','from-indigo-500 to-indigo-600'], displayBg: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #7c3aed 70%, #a855f7 100%)', displayAccent: '#c084fc', displayCard: 'rgba(49,46,129,0.85)' },
 }
 
 // ── 往年回顧資料 ──
@@ -92,6 +112,78 @@ const PAST_EVENTS = [
   { year: '往年', type: 'album', title: '活動照片集', url: 'https://photos.app.goo.gl/ofwnpgqwH3dgF2mB7' },
 ]
 
+// 模擬時鐘元件
+const AnalogClock = ({ time }) => {
+  const [hours, minutes, seconds] = time.split(':').map(Number)
+  const hourAngle = (hours % 12) * 30 + minutes * 0.5
+  const minuteAngle = minutes * 6
+  const secondAngle = seconds * 6
+
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 100 100" className="text-white">
+      {/* 時鐘外框 */}
+      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
+      
+      {/* 刻度 */}
+      {[...Array(12)].map((_, i) => {
+        const angle = i * 30 - 90
+        const x1 = 50 + 35 * Math.cos(angle * Math.PI / 180)
+        const y1 = 50 + 35 * Math.sin(angle * Math.PI / 180)
+        const x2 = 50 + 40 * Math.cos(angle * Math.PI / 180)
+        const y2 = 50 + 40 * Math.sin(angle * Math.PI / 180)
+        return (
+          <line
+            key={i}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke="currentColor"
+            strokeWidth="2"
+            opacity="0.6"
+          />
+        )
+      })}
+      
+      {/* 時針 */}
+      <line
+        x1="50"
+        y1="50"
+        x2={50 + 20 * Math.cos((hourAngle - 90) * Math.PI / 180)}
+        y2={50 + 20 * Math.sin((hourAngle - 90) * Math.PI / 180)}
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      
+      {/* 分針 */}
+      <line
+        x1="50"
+        y1="50"
+        x2={50 + 30 * Math.cos((minuteAngle - 90) * Math.PI / 180)}
+        y2={50 + 30 * Math.sin((minuteAngle - 90) * Math.PI / 180)}
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      
+      {/* 秒針 */}
+      <line
+        x1="50"
+        y1="50"
+        x2={50 + 35 * Math.cos((secondAngle - 90) * Math.PI / 180)}
+        y2={50 + 35 * Math.sin((secondAngle - 90) * Math.PI / 180)}
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      
+      {/* 中心點 */}
+      <circle cx="50" cy="50" r="2" fill="currentColor"/>
+    </svg>
+  )
+}
+
 export default function LoveRunTracker() {
   const [participants, setParticipants] = useState([])
   const [schedules, setSchedules] = useState([])
@@ -99,12 +191,19 @@ export default function LoveRunTracker() {
   // signups: { id, name, token, slots: ['08:00','08:05',...], note, createdAt }
   const [signups, setSignups] = useState([])
   const [eventName, setEventName] = useState('羅東愛心路跑')
+  const [eventDate, setEventDate] = useState('')
   const [activeTab, setActiveTab] = useState('signup')
   const [skinKey, setSkinKey] = useState('ocean')
   const [currentParticipant, setCurrentParticipant] = useState('')
   const [currentSchedule, setCurrentSchedule] = useState('')
   const [currentTime, setCurrentTime] = useState('')
   const [isFullscreen, setIsFullscreen] = useState(false)
+
+  // 展示頁圈數記錄
+  const [displayRunner, setDisplayRunner] = useState('')    // 目前選擇的跑者
+  const [displayManualTime, setDisplayManualTime] = useState('')  // 手動時間覆蓋
+  const [displayUseManualTime, setDisplayUseManualTime] = useState(false) // 是否使用手動時間
+  const [displayDrawerOpen, setDisplayDrawerOpen] = useState(false) // 個人統計滑出面板
 
   // 報名流程狀態
   const [signupStep, setSignupStep] = useState('name') // 'name' | 'grid' | 'done'
@@ -119,6 +218,21 @@ export default function LoveRunTracker() {
   // 修改模式：從 URL token 進入
   const [editToken, setEditToken] = useState(null)
   const [editRecord, setEditRecord] = useState(null)
+
+  // 計時器
+  const [timerStart, setTimerStart] = useState(null)
+  const [timerRunning, setTimerRunning] = useState(false)
+
+  // 時鐘顯示模式
+  const [clockDisplayMode, setClockDisplayMode] = useState('digital') // 'digital' | 'analog'
+
+  // 手動修改圈數彈窗
+  const [showEditLapModal, setShowEditLapModal] = useState(false)
+  const [editLapRunner, setEditLapRunner] = useState('')
+  const [editLapNumber, setEditLapNumber] = useState('')
+  const [editLapTime, setEditLapTime] = useState('')
+  const [editLapAdjustment, setEditLapAdjustment] = useState('')
+  const [editLapError, setEditLapError] = useState('')
 
   // 參加者管理
   const [newParticipantName, setNewParticipantName] = useState('')
@@ -139,6 +253,12 @@ export default function LoveRunTracker() {
   const [adminPwError, setAdminPwError] = useState(false)
   const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD
 
+  // 確認對話框
+  const [confirmDialog, setConfirmDialog] = useState(null) // { title, message, onConfirm, onCancel }
+
+  // 工具提示
+  const [tooltip, setTooltip] = useState(null) // { text, x, y }
+
   // 管理頁報名視窗
   const [adminGridToken, setAdminGridToken] = useState(null)   // 正在管理的 token
   const [adminGridSlots, setAdminGridSlots] = useState([])     // 暫存修改中的時段
@@ -153,11 +273,21 @@ export default function LoveRunTracker() {
       const p = localStorage.getItem('loverun_participants')
       const sc = localStorage.getItem('loverun_schedules')
       const lr = localStorage.getItem('loverun_lapRecords')
+      const ts = localStorage.getItem('loverun_timerStart')
       if (p) setParticipants(JSON.parse(p))
       if (sc) setSchedules(JSON.parse(sc))
       if (lr) setLapRecords(JSON.parse(lr))
+      if (ts) {
+        const start = parseInt(ts)
+        if (!Number.isNaN(start)) {
+          setTimerStart(start)
+          setTimerRunning(true)
+        }
+      }
       const sk = localStorage.getItem('loverun_skin')
       if (sk && SKINS[sk]) setSkinKey(sk)
+      const cdm = localStorage.getItem('loverun_clockDisplayMode')
+      if (cdm === 'analog' || cdm === 'digital') setClockDisplayMode(cdm)
     } catch (e) {}
   }, [])
 
@@ -165,6 +295,11 @@ export default function LoveRunTracker() {
   useEffect(() => { localStorage.setItem('loverun_schedules', JSON.stringify(schedules)) }, [schedules])
   useEffect(() => { localStorage.setItem('loverun_lapRecords', JSON.stringify(lapRecords)) }, [lapRecords])
   useEffect(() => { localStorage.setItem('loverun_skin', skinKey) }, [skinKey])
+  useEffect(() => { localStorage.setItem('loverun_clockDisplayMode', clockDisplayMode) }, [clockDisplayMode])
+  useEffect(() => {
+    if (timerStart) localStorage.setItem('loverun_timerStart', String(timerStart))
+    else localStorage.removeItem('loverun_timerStart')
+  }, [timerStart])
 
   const skin = SKINS[skinKey]
 
@@ -177,12 +312,13 @@ export default function LoveRunTracker() {
     return () => unsub()
   }, [])
 
-  // ── Firestore 即時監聽：設定（活動名稱、結束時間） ──
+  // ── Firestore 即時監聽：設定（活動名稱、日期、結束時間） ──
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'main'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data()
         if (data.eventName) setEventName(data.eventName)
+        if (data.eventDate !== undefined) setEventDate(data.eventDate || '')
         if (data.extraEndHour) setExtraEndHour(data.extraEndHour)
       }
     })
@@ -193,6 +329,12 @@ export default function LoveRunTracker() {
   const saveEventName = async (name) => {
     setEventName(name)
     await setDoc(doc(db, 'settings', 'main'), { eventName: name }, { merge: true })
+  }
+
+  // ── 寫回 Firestore：活動日期 ──
+  const saveEventDate = async (d) => {
+    setEventDate(d)
+    await setDoc(doc(db, 'settings', 'main'), { eventDate: d }, { merge: true })
   }
 
   // ── 寫回 Firestore：結束時間 ──
@@ -245,6 +387,44 @@ export default function LoveRunTracker() {
   }, [activeTab, currentParticipant, currentSchedule, lapRecords, schedules])
 
   const playBeep = () => { if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play().catch(() => {}) } }
+
+  const startTimer = () => {
+    if (timerRunning) return
+    const now = Date.now()
+    setTimerStart(now)
+    setTimerRunning(true)
+  }
+
+  const resetTimer = () => {
+    setTimerStart(null)
+    setTimerRunning(false)
+  }
+
+  const elapsedSeconds = timerStart ? Math.max(0, Math.floor((Date.now() - timerStart) / 1000)) : 0
+  const elapsedTimeDisplay = formatDuration(elapsedSeconds)
+
+  const getRunnerExpectedSlot = (name) => {
+    const signup = signups.find(s => s.name === name)
+    if (!signup || !signup.slots?.length) return null
+    return [...signup.slots].sort()[0]
+  }
+
+  const getRunnerScheduleDelta = (name) => {
+    const slot = getRunnerExpectedSlot(name)
+    if (!slot || !timerStart) return null
+    const expected = parseTodayTime(slot)
+    const diff = Math.round((Date.now() - expected) / 60000)
+    return diff
+  }
+
+  const getRunnerOrder = () => {
+    return signups
+      .map(s => ({ ...s, earliestSlot: s.slots?.length ? [...s.slots].sort()[0] : '99:99' }))
+      .sort((a, b) => {
+        if (a.earliestSlot === b.earliestSlot) return a.name.localeCompare(b.name, 'zh-TW')
+        return a.earliestSlot.localeCompare(b.earliestSlot)
+      })
+  }
 
   // ══════════════════════════════
   // 報名邏輯
@@ -426,6 +606,123 @@ export default function LoveRunTracker() {
 
   const deleteLapRecord = (id) => setLapRecords(lapRecords.filter(r => r.id !== id))
 
+  // 展示頁記圈（可手動對時）
+  const recordDisplayLap = useCallback(() => {
+    if (!displayRunner) return
+    const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
+    setLapRecords(prev => [...prev, {
+      id: Date.now(), participant: displayRunner,
+      scheduleId: 0, className: '展示記錄',
+      time, timestamp: Date.now(),
+    }])
+    playBeep()
+  }, [displayRunner, displayUseManualTime, displayManualTime])
+
+  // 手動調整圈數
+  const adjustLapCount = useCallback((adjustment) => {
+    if (!displayRunner) return
+
+    const adjustmentNum = parseInt(adjustment)
+    if (isNaN(adjustmentNum) || adjustmentNum === 0) return
+
+    const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
+
+    if (adjustmentNum > 0) {
+      // 增加圈數
+      const newLaps = Array.from({ length: adjustmentNum }, (_, i) => ({
+        id: Date.now() + i,
+        participant: displayRunner,
+        scheduleId: 0,
+        className: '手動調整',
+        time,
+        timestamp: Date.now() + i,
+      }))
+      setLapRecords(prev => [...prev, ...newLaps])
+    } else {
+      // 減少圈數
+      const runnerLaps = getRunnerLaps(displayRunner)
+      const lapsToRemove = Math.min(Math.abs(adjustmentNum), runnerLaps.length)
+      const sortedLaps = runnerLaps.sort((a, b) => b.timestamp - a.timestamp)
+      const idsToRemove = sortedLaps.slice(0, lapsToRemove).map(lap => lap.id)
+      setLapRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)))
+    }
+
+    playBeep()
+  }, [displayRunner, displayUseManualTime, displayManualTime])
+
+  const saveLapModification = () => {
+    if (!editLapRunner) {
+      setEditLapError('請先選擇跑者。')
+      return
+    }
+    const runnerLaps = getRunnerLaps(editLapRunner).sort((a, b) => a.timestamp - b.timestamp)
+    let updated = [...lapRecords]
+    let changed = false
+
+    if (editLapNumber && editLapTime) {
+      const index = parseInt(editLapNumber, 10) - 1
+      if (index >= 0 && index < runnerLaps.length) {
+        const lapToEdit = runnerLaps[index]
+        updated = updated.map(r => r.id === lapToEdit.id ? { ...r, time: editLapTime, timestamp: Date.now() } : r)
+        changed = true
+      } else {
+        setEditLapError('請選擇有效的圈數編號。')
+        return
+      }
+    }
+
+    const adjustment = parseInt(editLapAdjustment, 10)
+    if (!Number.isNaN(adjustment) && adjustment !== 0) {
+      if (adjustment > 0) {
+        const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
+        const newLaps = Array.from({ length: adjustment }, (_, i) => ({
+          id: Date.now() + i,
+          participant: editLapRunner,
+          scheduleId: 0,
+          className: '手動調整',
+          time,
+          timestamp: Date.now() + i,
+        }))
+        updated = [...updated, ...newLaps]
+        changed = true
+      } else {
+        const removeCount = Math.min(Math.abs(adjustment), runnerLaps.length)
+        const toRemoveIds = runnerLaps.slice(-removeCount).map(lap => lap.id)
+        updated = updated.filter(r => !toRemoveIds.includes(r.id))
+        changed = true
+      }
+    }
+
+    if (!changed) {
+      setEditLapError('請設定要修改的項目。')
+      return
+    }
+
+    setLapRecords(updated)
+    setShowEditLapModal(false)
+    setEditLapError('')
+    setEditLapAdjustment('')
+    setEditLapNumber('')
+    setEditLapTime('')
+  }
+
+  // 取得指定跑者的圈數
+  const getRunnerLaps = (name) => lapRecords.filter(r => r.participant === name)
+
+  // 匯出展示頁圈數記錄
+  const exportDisplayLaps = () => {
+    const allRunners = [...new Set(lapRecords.map(r => r.participant))].sort((a, b) => a.localeCompare(b, 'zh-TW'))
+    const rows = [['姓名', '第幾圈', '記錄時間'].join(',')]
+    allRunners.forEach(name => {
+      const laps = getRunnerLaps(name).sort((a, b) => a.timestamp - b.timestamp)
+      laps.forEach((lap, i) => rows.push([name, i + 1, lap.time].join(',')))
+    })
+    const csv = rows.join('\n')
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = `${eventName}_圈數記錄_${new Date().toISOString().split('T')[0]}.csv`; a.click()
+  }
+
   // ══════════════════════════════
   // 統計
   // ══════════════════════════════
@@ -508,23 +805,23 @@ export default function LoveRunTracker() {
     rest:   'bg-purple-50 text-purple-500 border-purple-200',
     extra:  'bg-teal-50 text-teal-600 border-teal-200',
   }
-  const ICON_MAP = { period: '', free: '', break: '☕', meal: '🍱', rest: '😴', extra: '⏰' }
+const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest: Moon, extra: Clock }
 
   // 圖例元件（共用）
   const Legend = () => (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
-      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
-      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>3–4人</span>
-      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>5人+</span>
-      <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-500 inline-block"/>已選</span>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-gray-600">
+      <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-lg bg-green-200 border border-green-400 inline-block"/>空</span>
+      <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-lg bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
+      <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-lg bg-orange-200 border border-orange-400 inline-block"/>3–4人</span>
+      <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-lg bg-red-200 border border-red-400 inline-block"/>5人+</span>
+      <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-lg bg-blue-500 inline-block"/>已選</span>
     </div>
   )
 
   const TABS = [
-    { key: 'signup', label: '📋 報名登記' },
-    { key: 'display', label: '📺 展示' },
-    { key: 'admin', label: '⚙️ 管理' },
+    { key: 'signup', icon: ClipboardList, label: '報名登記', tooltip: '學生報名時段登記' },
+    { key: 'display', icon: Monitor, label: '展示', tooltip: '活動現場大螢幕展示' },
+    { key: 'admin', icon: Settings, label: '管理', tooltip: '管理員功能設定' },
   ]
 
   return (
@@ -534,23 +831,25 @@ export default function LoveRunTracker() {
       {/* 標題列 */}
       <header className="sticky top-0 z-10 shadow-lg"
         style={{ background: skin.header }}>
-        <div className="max-w-3xl mx-auto px-4 pt-3 pb-1 flex items-center justify-between gap-4">
+        <div className="max-w-3xl mx-auto px-4 pt-3 pb-1 flex items-center justify-between gap-3">
           <button onClick={() => setActiveTab('signup')} className="text-left hover:opacity-90 transition-opacity flex items-center gap-3 min-w-0">
-            <span className="text-2xl sm:text-3xl shrink-0">🏃‍♀️</span>
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0 shadow-lg">
+              <Activity className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+            </div>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-xl font-extrabold text-white leading-tight tracking-wide truncate">{eventName}</h1>
-              <p className={`text-[11px] ${skin.subtextHeader} font-medium`}>時段登記系統</p>
+              <h1 className="text-sm sm:text-xl font-extrabold text-white leading-snug tracking-wide">{eventName}</h1>
+              {eventDate && <p className={`text-xs sm:text-sm ${skin.subtextHeader} font-semibold`}>{eventDate}</p>}
             </div>
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* 主題切換 */}
             <div className="relative group">
-              <button className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-sm transition-colors" title="切換主題">🎨</button>
-              <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 p-2 hidden group-hover:block min-w-[120px] z-50">
+              <button className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur hover:bg-white/30 flex items-center justify-center transition-colors shadow" title="切換主題"><Palette className="w-5 h-5 text-white" /></button>
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-2xl shadow-2xl border border-gray-200 p-2 hidden group-hover:block min-w-[140px] z-50">
                 {Object.entries(SKINS).map(([key, s]) => (
                   <button key={key} onClick={() => setSkinKey(key)}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2 ${skinKey === key ? 'bg-gray-100 font-bold' : 'hover:bg-gray-50'}`}>
-                    <span className="w-3 h-3 rounded-full shrink-0" style={{ background: s.header }}/>
+                    className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors flex items-center gap-2.5 ${skinKey === key ? 'bg-gray-100 font-bold' : 'hover:bg-gray-50'}`}>
+                    <span className="w-5 h-5 rounded-lg shrink-0 shadow-sm" style={{ background: s.header }}/>
                     {s.name}
                   </button>
                 ))}
@@ -558,16 +857,22 @@ export default function LoveRunTracker() {
             </div>
             <div className="text-right shrink-0">
               <div className="text-xl sm:text-2xl font-mono font-bold text-white tabular-nums">{currentTime}</div>
-              <div className={`text-[11px] ${skin.subtextHeader}`}>已登記 <span className={`font-bold ${skin.badgeColor}`}>{signups.length}</span> 人</div>
+              <div className={`text-xs ${skin.subtextHeader}`}>已登記 <span className={`font-bold ${skin.badgeColor}`}>{signups.length}</span> 人</div>
             </div>
           </div>
         </div>
-        <div className="max-w-3xl mx-auto px-3 flex gap-1 py-2 overflow-x-auto">
-          {TABS.map(tab => (
+        <div className="max-w-3xl mx-auto px-3 flex gap-1.5 py-2 overflow-x-auto">
+          {TABS.map((tab, index) => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
-                activeTab === tab.key ? skin.tabActive : skin.tabInactive
-              }`}>{tab.label}</button>
+              className={`tooltip flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-300 hover:scale-105 active:scale-95 ${
+                activeTab === tab.key ? `${skin.tabActive} shadow-lg` : skin.tabInactive
+              }`}
+              data-tooltip={tab.tooltip}
+              style={{ animationDelay: `${index * 0.05}s` }}
+            >
+              <tab.icon className={`w-5 h-5 animate-bounce-in ${activeTab === tab.key ? skin.iconColor : 'opacity-80'}`} style={{ animationDelay: `${index * 0.05 + 0.1}s` }} />
+              {tab.label}
+            </button>
           ))}
         </div>
       </header>
@@ -583,7 +888,7 @@ export default function LoveRunTracker() {
             {editToken && editRecord && (
               <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between">
                 <div className="text-sm text-blue-700">
-                  ✏️ 修改模式：<span className="font-bold">{editRecord.name}</span> 的登記
+                  <Pencil className="w-4 h-4 inline mr-1" /> 修改模式：<span className="font-bold">{editRecord.name}</span> 的登記
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => deleteSignup(editToken)} className="text-xs bg-red-50 text-red-500 border border-red-200 px-3 py-1 rounded-lg hover:bg-red-100">取消登記</button>
@@ -598,46 +903,77 @@ export default function LoveRunTracker() {
                 {/* 統計摘要列（手機橫排3欄，較寬時也是橫排） */}
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                   {[
-                    { label: '已登記人數', value: signups.length, color: skin.statCards[0], icon: '👥' },
-                    { label: '已佔用時段', value: [...new Set(signups.flatMap(s => s.slots))].length, color: skin.statCards[1], icon: '📅' },
-                    { label: '可用時段', value: Math.max(0, TIME_SLOTS.length - [...new Set(signups.flatMap(s => s.slots))].length), color: skin.statCards[2], icon: '✨' },
-                  ].map(({ label, value, color, icon }) => (
-                    <div key={label} className={`bg-gradient-to-br ${color} rounded-2xl p-3 text-white text-center shadow-md`}>
-                      <div className="text-base sm:text-lg mb-0.5">{icon}</div>
-                      <div className="text-xl sm:text-2xl font-black leading-none">{value}</div>
-                      <div className="text-[9px] sm:text-[10px] opacity-80 mt-1 leading-tight">{label}</div>
+                    { label: '已登記人數', value: signups.length, color: skin.statCards[0], Icon: Users },
+                    { label: '已佔用時段', value: [...new Set(signups.flatMap(s => s.slots))].length, color: skin.statCards[1], Icon: CalendarCheck },
+                    { label: '可用時段', value: Math.max(0, TIME_SLOTS.length - [...new Set(signups.flatMap(s => s.slots))].length), color: skin.statCards[2], Icon: Sparkles },
+                  ].map(({ label, value, color, Icon }, index) => (
+                    <div key={label} className={`bg-gradient-to-br ${color} rounded-2xl p-3 sm:p-4 text-white text-center shadow-md hover:shadow-lg transition-all duration-300 animate-fade-in`} style={{ animationDelay: `${index * 0.1}s` }}>
+                      <div className="mb-2 flex justify-center animate-bounce-in" style={{ animationDelay: `${index * 0.1 + 0.2}s` }}><Icon className="w-7 h-7 sm:w-8 sm:h-8 opacity-90" /></div>
+                      <div className="text-2xl sm:text-3xl font-black leading-none animate-pulse-gentle" style={{ animationDelay: `${index * 0.1 + 0.4}s` }}>{value}</div>
+                      <div className="text-[10px] sm:text-xs opacity-80 mt-1.5 leading-tight font-medium">{label}</div>
                     </div>
                   ))}
                 </div>
 
+                {/* 開始計時 */}
+                <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-5 border border-gray-100 mb-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-bold text-gray-800">活動計時</h3>
+                      <p className="text-sm text-gray-500">開始後會顯示已進行時間，讓現場更好掌握進度。</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={timerRunning ? resetTimer : startTimer}
+                        className={`btn-primary ${timerRunning ? 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : ''}`}
+                      >
+                        {timerRunning ? '重設計時' : '開始計時'}
+                      </button>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-400">已進行</p>
+                        <p className="text-lg font-black text-gray-800">{timerRunning ? elapsedTimeDisplay : '00:00:00'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* 登記表單卡片 */}
-                <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
+                <div className="card animate-fade-in p-4 sm:p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-lg shadow">📋</div>
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg animate-bounce-in" style={{ background: skin.cardGrad }}><ClipboardSignature className="w-6 h-6 sm:w-7 sm:h-7 text-white" /></div>
                     <div>
                       <h2 className="text-base sm:text-lg font-extrabold text-gray-800 leading-tight">時段登記</h2>
                       <p className="text-xs text-gray-400">輸入姓名後選擇想登記的時段</p>
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <input
-                      type="text"
-                      value={signupNameInput}
-                      onChange={e => setSignupNameInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && signupNameInput.trim()) setSignupStep('grid') }}
-                      placeholder="請輸入您的姓名..."
-                      list="participant-list"
-                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-blue-400 transition-colors"
-                      autoFocus
-                    />
-                    <datalist id="participant-list">
-                      {participants.map(n => <option key={n} value={n} />)}
-                    </datalist>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={signupNameInput}
+                        onChange={e => setSignupNameInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && signupNameInput.trim()) setSignupStep('grid') }}
+                        placeholder="請輸入您的姓名..."
+                        list="participant-list"
+                        className="input-primary"
+                        autoFocus
+                      />
+                      <datalist id="participant-list">
+                        {participants.map(n => <option key={n} value={n} />)}
+                      </datalist>
+                      {signupNameInput && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 animate-pulse-gentle">
+                          <Check className="w-5 h-5" />
+                        </div>
+                      )}
+                    </div>
                     <button
                       onClick={() => { if (signupNameInput.trim()) setSignupStep('grid') }}
                       disabled={!signupNameInput.trim()}
-                      className={`w-full bg-gradient-to-r ${skin.btnGrad} disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 text-white py-3 rounded-xl text-base font-bold ${skin.btnHover} transition-all shadow-md disabled:shadow-none`}
-                    >選擇時段 →</button>
+                      className={`w-full btn-primary disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed ${signupNameInput.trim() ? 'animate-pulse-gentle' : ''}`}
+                    >
+                      {signupNameInput.trim() ? <span className="flex items-center justify-center gap-2"><span>選擇時段</span><ArrowRight className="w-4 h-4" /></span> : '請先輸入姓名'}
+                    </button>
                   </div>
 
                   {/* 已有登記可查詢 */}
@@ -672,12 +1008,9 @@ export default function LoveRunTracker() {
                   rounded-t-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
                   {/* 送出中遮罩 */}
                   {signupSubmitting && (
-                    <div className="absolute inset-0 z-20 bg-white/70 rounded-t-3xl sm:rounded-2xl flex flex-col items-center justify-center gap-3">
-                      <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                      </svg>
-                      <div className="text-blue-600 font-semibold text-base">正在儲存登記…</div>
+                    <div className="absolute inset-0 z-20 bg-white/80 backdrop-blur-sm rounded-t-3xl sm:rounded-2xl flex flex-col items-center justify-center gap-3 animate-fade-in">
+                      <div className="loading-spinner"></div>
+                      <div className="text-blue-600 font-semibold text-base animate-pulse-gentle">正在儲存登記…</div>
                       <div className="text-gray-400 text-sm">請稍候，勿關閉頁面</div>
                     </div>
                   )}
@@ -702,14 +1035,14 @@ export default function LoveRunTracker() {
                         onClick={() => { setSignupStep('name'); setSignupSelectedSlots([]); setSignupError('') }}
                         disabled={signupSubmitting}
                         className="text-gray-400 hover:text-gray-600 text-2xl leading-none disabled:opacity-30"
-                      >×</button>
+                      ><X className="w-5 h-5" /></button>
                     </div>
                   </div>
 
                   {/* 系統建議時段 */}
                   {signupSelectedSlots.length === 0 && (
                     <div className="mx-3 sm:mx-5 mt-3 bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center justify-between gap-3">
-                      <div className="text-xs sm:text-sm text-green-700">💡 系統可自動排入較空時段，或直接點選格子</div>
+                      <div className="text-xs sm:text-sm text-green-700 flex items-center gap-1"><Lightbulb className="w-4 h-4" /> 系統可自動排入較空時段，或直接點選格子</div>
                       <button
                         onClick={() => {
                           const sorted = [...TIME_SLOTS].sort((a, b) => {
@@ -731,7 +1064,7 @@ export default function LoveRunTracker() {
                       {[...signupSelectedSlots].sort().map(s => (
                         <span key={s} className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
                           {s}
-                          <button onClick={() => toggleSlot(s)} className="hover:text-blue-200">×</button>
+                          <button onClick={() => toggleSlot(s)} className="hover:text-blue-200"><X className="w-3 h-3" /></button>
                         </span>
                       ))}
                     </div>
@@ -749,11 +1082,14 @@ export default function LoveRunTracker() {
                             anySelected ? 'bg-blue-50' : 'hover:bg-gray-50'
                           }`}>
                           {/* 左側標籤 */}
-                          <div className={`shrink-0 w-12 sm:w-14 rounded-lg border text-center py-1 leading-tight ${activeLabelStyle}`}>
-                            {ICON_MAP[block.type] && <div className="text-xs leading-none mb-0.5">{ICON_MAP[block.type]}</div>}
-                            <div className="text-[10px] sm:text-xs font-bold">{block.label}</div>
-                            <div className="text-[8px] opacity-60 mt-0.5">{block.start}</div>
-                            <div className="text-[8px] opacity-60">–{block.end}</div>
+                          <div className={`shrink-0 w-14 sm:w-16 rounded-xl border text-center py-1.5 leading-tight ${activeLabelStyle}`}>
+                            {ICON_MAP[block.type] && (() => {
+                              const Icon = ICON_MAP[block.type];
+                              return <div className="flex justify-center mb-0.5"><Icon className={`w-4 h-4 ${anySelected ? 'text-white' : skin.iconColor}`} /></div>
+                            })()}
+                            <div className="text-xs sm:text-sm font-bold">{block.label}</div>
+                            <div className="text-[9px] sm:text-[10px] opacity-60 mt-0.5">{block.start}</div>
+                            <div className="text-[9px] sm:text-[10px] opacity-60">–{block.end}</div>
                           </div>
                           {/* 右側格子：手機 38px，平板以上 44px */}
                           <div className="flex flex-wrap gap-1 flex-1">
@@ -830,7 +1166,7 @@ export default function LoveRunTracker() {
                 <div className="rounded-3xl shadow-xl overflow-hidden mb-4"
                   style={{ background: skin.cardGrad }}>
                   <div className="px-6 pt-8 pb-6 text-center">
-                    <div className="text-5xl mb-3">{editRecord ? '✏️' : '🎉'}</div>
+                    <div className="mb-4 flex justify-center">{editRecord ? <Pencil className="w-12 h-12 text-white" /> : <PartyPopper className="w-12 h-12 text-white" />}</div>
                     <h2 className="text-2xl font-black text-white mb-1">
                       {editRecord ? '修改完成！' : '登記成功！'}
                     </h2>
@@ -851,8 +1187,8 @@ export default function LoveRunTracker() {
 
                 {/* 修改碼卡片 */}
                 <div className="bg-white rounded-2xl shadow-lg p-5 mb-3 border border-gray-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">🔑</span>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: skin.btnGrad }}><KeyRound className="w-5 h-5 text-white" /></div>
                     <span className="text-sm font-bold text-gray-700">您的修改碼（請妥善保存）</span>
                   </div>
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 mb-3 text-center">
@@ -861,7 +1197,7 @@ export default function LoveRunTracker() {
                   <button
                     onClick={() => copyLink(signupDoneToken)}
                     className={`w-full bg-gradient-to-r ${skin.btnGrad} text-white py-2.5 rounded-xl text-sm font-bold ${skin.btnHover} transition-all shadow`}
-                  >📋 複製修改連結</button>
+                  ><Copy className="w-4 h-4 inline mr-2" /> 複製修改連結</button>
                   <div className="mt-2 text-[10px] text-gray-300 break-all text-center">{getEditLink(signupDoneToken)}</div>
                 </div>
 
@@ -876,17 +1212,17 @@ export default function LoveRunTracker() {
               <div className="mt-4 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-white text-xs shadow">📊</span>
-                    <h2 className="font-extrabold text-gray-800">登記狀況總覽</h2>
+                    <span className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: skin.cardGrad }}><BarChart3 className="w-5 h-5 text-white" /></span>
+                    <h2 className="font-extrabold text-gray-800 text-base sm:text-lg">登記狀況總覽</h2>
                   </div>
-                  <button onClick={exportSignups} className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-200 font-medium">📥 匯出</button>
+                  <button onClick={exportSignups} className="text-sm bg-gray-100 text-gray-600 px-4 py-2 rounded-xl hover:bg-gray-200 font-semibold flex items-center gap-1.5 shadow-sm"><FileDown className={`w-4 h-4 ${skin.iconColor}`} /> 匯出</button>
                 </div>
                 {/* 圖例 */}
-                <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block"/>空</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block"/>3–4人</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400 inline-block"/>5人+</span>
+                <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                  <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-lg bg-green-200 border border-green-400 inline-block"/>空</span>
+                  <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-lg bg-yellow-200 border border-yellow-400 inline-block"/>1–2人</span>
+                  <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-lg bg-orange-200 border border-orange-400 inline-block"/>3–4人</span>
+                  <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-lg bg-red-200 border border-red-400 inline-block"/>5人+</span>
                 </div>
                 {/* 依 TIME_BLOCKS 軸呈現 */}
                 <div className="space-y-1">
@@ -895,11 +1231,14 @@ export default function LoveRunTracker() {
                     return (
                       <div key={block.label + block.start} className="flex items-start gap-1.5 sm:gap-2 px-1.5 sm:px-2 py-1 rounded-xl hover:bg-gray-50">
                         {/* 左側標籤 */}
-                        <div className={`shrink-0 w-12 sm:w-14 rounded-lg border text-center py-1 leading-tight ${LABEL_STYLE[block.type]}`}>
-                          {ICON_MAP[block.type] && <div className="text-xs leading-none mb-0.5">{ICON_MAP[block.type]}</div>}
-                          <div className="text-[10px] sm:text-xs font-bold">{block.label}</div>
-                          <div className="text-[8px] opacity-60 mt-0.5">{block.start}</div>
-                          <div className="text-[8px] opacity-60">–{block.end}</div>
+                        <div className={`shrink-0 w-14 sm:w-16 rounded-xl border text-center py-1.5 leading-tight ${LABEL_STYLE[block.type]}`}>
+                          {ICON_MAP[block.type] && (() => {
+                            const Icon = ICON_MAP[block.type];
+                            return <div className="flex justify-center mb-0.5"><Icon className={`w-4 h-4 ${skin.iconColor}`} /></div>
+                          })()}
+                          <div className="text-xs sm:text-sm font-bold">{block.label}</div>
+                          <div className="text-[9px] sm:text-[10px] opacity-60 mt-0.5">{block.start}</div>
+                          <div className="text-[9px] sm:text-[10px] opacity-60">–{block.end}</div>
                         </div>
                         {/* 右側格子（唯讀，hover 顯示 tooltip） */}
                         <div className="flex flex-wrap gap-0.5 sm:gap-1 flex-1">
@@ -959,15 +1298,15 @@ export default function LoveRunTracker() {
             {/* ── 往年回顧 ── */}
             {signupStep === 'name' && !editToken && PAST_EVENTS.length > 0 && (
               <div className="mt-4 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white text-xs shadow">🎬</span>
-                  <h2 className="font-extrabold text-gray-800">往年活動回顧</h2>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: skin.cardGrad }}><Clapperboard className="w-5 h-5 text-white" /></div>
+                  <h2 className="font-extrabold text-gray-800 text-base sm:text-lg">往年活動回顧</h2>
                 </div>
                 <div className="space-y-4">
                   {PAST_EVENTS.filter(e => e.type === 'video').map((ev, i) => (
                     <div key={i}>
-                      <h3 className="text-sm font-bold text-gray-600 mb-2 flex items-center gap-1.5">
-                        <span className="text-red-500">▶</span> {ev.title}
+                      <h3 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
+                        <Play className={`w-5 h-5 ${skin.iconColor}`} fill="currentColor" /> {ev.title}
                       </h3>
                       <div className="relative w-full rounded-xl overflow-hidden shadow-md" style={{ paddingBottom: '56.25%' }}>
                         <iframe
@@ -983,13 +1322,13 @@ export default function LoveRunTracker() {
                   {PAST_EVENTS.filter(e => e.type === 'album').map((ev, i) => (
                     <a key={i} href={ev.url} target="_blank" rel="noopener noreferrer"
                       className="block bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4 hover:shadow-md transition-shadow group">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">📸</span>
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg shrink-0" style={{ background: skin.cardGrad }}><Camera className="w-7 h-7 text-white" /></div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-gray-700 group-hover:text-emerald-700 transition-colors">{ev.title}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">點擊前往 Google 相簿瀏覽</div>
+                          <div className="font-bold text-gray-700 text-base group-hover:text-emerald-700 transition-colors">{ev.title}</div>
+                          <div className="text-sm text-gray-400 mt-0.5">點擊前往 Google 相簿瀏覽</div>
                         </div>
-                        <span className="text-emerald-400 text-xl shrink-0 group-hover:translate-x-1 transition-transform">→</span>
+                        <ArrowRight className="text-emerald-400 w-6 h-6 shrink-0 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </a>
                   ))}
@@ -1000,76 +1339,446 @@ export default function LoveRunTracker() {
         )}
 
         {/* ═══════════════════════════════
-            大螢幕展示
+            大螢幕展示 + 圈數記錄
         ═══════════════════════════════ */}
-        {activeTab === 'display' && (
+        {activeTab === 'display' && (() => {
+          const allRunners = [...new Set([...participants, ...signups.map(s => s.name), ...lapRecords.map(r => r.participant)])].sort((a, b) => a.localeCompare(b, 'zh-TW'))
+          const runnerLaps = displayRunner ? getRunnerLaps(displayRunner).sort((a, b) => a.timestamp - b.timestamp) : []
+          const runnerLapCount = runnerLaps.length
+          const totalLaps = lapRecords.length
+          const sortedStats = [...stats].sort((a, b) => b.totalLaps - a.totalLaps)
+          const runnerOrder = getRunnerOrder()
+          const expectedSlot = displayRunner ? getRunnerExpectedSlot(displayRunner) : null
+          const scheduleDelta = displayRunner ? getRunnerScheduleDelta(displayRunner) : null
+          return (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="font-bold text-gray-700">大螢幕展示模式</h2>
-              <button onClick={toggleFullscreen} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
-                {isFullscreen ? '退出全螢幕' : '🖥️ 全螢幕'}
-              </button>
+            {/* 操作列 */}
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <h2 className="font-bold text-gray-700 text-lg">展示 & 圈數記錄</h2>
+              <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setDisplayDrawerOpen(true)} className="bg-violet-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-violet-700 font-semibold shadow flex items-center gap-1.5"><Users className="w-4 h-4" /> 個人統計</button>
+                  <button onClick={() => { setEditLapRunner(displayRunner || allRunners[0] || ''); setShowEditLapModal(true) }} className="bg-yellow-500 text-white px-4 py-2 rounded-xl text-sm hover:bg-yellow-600 font-semibold shadow flex items-center gap-1.5"><Settings className="w-4 h-4" /> 手動修改</button>
+                  <button onClick={exportDisplayLaps} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-semibold shadow flex items-center gap-1.5"><FileDown className="w-4 h-4" /> 匯出</button>
+                  <button onClick={toggleFullscreen} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 font-semibold shadow flex items-center gap-1.5">
+                    {isFullscreen ? '退出' : <><Monitor className="w-4 h-4" /> 全螢幕</>}
+                  </button>
+              </div>
             </div>
-            <div ref={displayRef} className={`bg-gray-900 rounded-xl text-white p-6 ${isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-y-auto' : ''}`}>
-              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl sm:text-4xl font-bold text-yellow-400">🏃‍♀️ {eventName}</h1>
-                <div className="text-right">
-                  <div className="text-3xl sm:text-5xl font-mono font-bold">{currentTime}</div>
-                  <div className="text-sm text-gray-400">總記錄 {lapRecords.length} 圈</div>
+
+            {/* 主展示區 */}
+            <div ref={displayRef} className={`rounded-2xl text-white overflow-hidden shadow-2xl relative flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-y-auto' : ''}`}
+              style={{ background: skin.displayBg, minHeight: isFullscreen ? '100vh' : '75vh' }}>
+
+              {/* 裝飾性背景圓 */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-10" style={{ background: skin.displayAccent }}/>
+                <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-[0.07]" style={{ background: skin.displayAccent }}/>
+                <div className="absolute top-1/2 right-1/4 w-48 h-48 rounded-full opacity-[0.05]" style={{ background: skin.displayAccent }}/>
+              </div>
+
+              {/* 頂部標題列 */}
+              <div className="relative px-4 sm:px-8 pt-5 pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center shadow-lg"><Activity className="w-7 h-7 sm:w-8 sm:h-8 text-white" /></div>
+                    <div className="rounded-2xl px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20">
+                      <div className="text-sm text-white/60 font-medium">已進行時間</div>
+                      <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent }}>
+                        {timerRunning ? elapsedTimeDisplay : '00:00:00'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {isFullscreen && (
+                        <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"><Users className="w-5 h-5 text-white" /></button>
+                    )}
+                    <div className="text-right">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="text-sm text-white/50">目前時間</div>
+                        <button
+                          onClick={() => setClockDisplayMode(clockDisplayMode === 'digital' ? 'analog' : 'digital')}
+                          className="w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs transition-colors"
+                          title={clockDisplayMode === 'digital' ? '切換到圓形時鐘' : '切換到數字時鐘'}
+                        >
+                            {clockDisplayMode === 'digital' ? <Clock className="w-4 h-4 text-white" /> : <Watch className="w-4 h-4 text-white" />}
+                        </button>
+                      </div>
+                      {clockDisplayMode === 'digital' ? (
+                        <div className="text-2xl sm:text-4xl font-mono font-black tabular-nums">{currentTime}</div>
+                      ) : (
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center mx-auto">
+                          <AnalogClock time={currentTime} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-              {stats.length === 0 ? (
-                <div className="text-center text-gray-500 py-16 text-xl">等待記錄中...</div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {stats.slice(0,15).map(s => (
-                    <div key={s.name} className="bg-gray-800 rounded-xl p-4 flex items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xl sm:text-2xl font-bold truncate">{s.name}</div>
-                        <div className="text-xs text-gray-400 truncate">{s.classes}</div>
+
+              {/* ══ 核心展示：全場總圈數（超大，佔滿版面） ══ */}
+              <div className="relative flex-1 flex items-center justify-center px-4 sm:px-8">
+                <div className="text-center">
+                  <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] mb-4 sm:mb-8">目前進行圈數</div>
+                  <div className="flex items-center justify-center mb-4 sm:mb-8">
+                    <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
+                          style={{
+                            color: skin.displayAccent,
+                            fontSize: 'min(66.67vh, 20rem)',
+                            textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
+                            WebkitTextStroke: '2px rgba(0,0,0,0.3)'
+                          }}>
+                      {totalLaps}
+                    </span>
+                  </div>
+                  <div className="text-white/60 text-2xl sm:text-4xl font-bold drop-shadow-lg"
+                       style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                    圈
+                  </div>
+                </div>
+              </div>
+
+              {/* ══ 跑者選擇（左側） ══ */}
+              <div className="absolute top-1/2 left-4 -translate-y-1/2 z-10 w-[240px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl">
+                <div className="mb-3">
+                  <div className="text-xs uppercase tracking-[0.2em] text-white/50 mb-2">選擇跑者</div>
+                  <select
+                    value={displayRunner}
+                    onChange={e => setDisplayRunner(e.target.value)}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-sm text-white appearance-none focus:outline-none focus:border-white/50 transition-colors"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
+                  >
+                    <option value="" style={{ color: '#333' }}>-- 請選擇跑者 --</option>
+                    {allRunners.map(name => {
+                      const cnt = getRunnerLaps(name).length
+                      return <option key={name} value={name} style={{ color: '#333' }}>{name}{cnt > 0 ? `（${cnt} 圈）` : ''}</option>
+                    })}
+                  </select>
+                </div>
+                {displayRunner && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center"><Users className="w-3 h-3 text-white" /></div>
+                      <div>
+                        <div className="text-sm font-bold">{displayRunner}</div>
+                        <div className="text-[10px] text-white/40">目前跑者</div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-3xl sm:text-4xl font-bold text-green-400">{s.totalLaps}</div>
-                        <div className="text-xs text-gray-400">圈</div>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black tabular-nums" style={{ color: skin.displayAccent }}>{runnerLapCount}</span>
+                      <span className="text-sm text-white/50 font-bold">圈</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-8 pb-4">
+                <div className="rounded-2xl p-3 sm:p-4 mx-auto max-w-2xl" style={{ background: skin.displayCard, backdropFilter: 'blur(12px)' }}>
+                  {/* 手動對時 + 記圈，一行 */}
+                  <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
+                    <div className="sm:w-36">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <label className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">手動對時</label>
+                        <button
+                          onClick={() => setDisplayUseManualTime(!displayUseManualTime)}
+                          className={`w-7 h-3 rounded-full transition-colors relative ${displayUseManualTime ? 'bg-green-500' : 'bg-white/20'}`}
+                        >
+                          <span className={`absolute top-[1px] w-2.5 h-2.5 bg-white rounded-full shadow transition-transform ${displayUseManualTime ? 'left-[14px]' : 'left-[1px]'}`}/>
+                        </button>
                       </div>
+                      <input
+                        type="time"
+                        value={displayManualTime}
+                        onChange={e => setDisplayManualTime(e.target.value)}
+                        disabled={!displayUseManualTime}
+                        className={`w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-white/50 transition-colors ${!displayUseManualTime ? 'opacity-30' : ''}`}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={recordDisplayLap}
+                        disabled={!displayRunner}
+                        className={`flex-1 py-2 rounded-xl text-base font-black shadow-lg transition-all duration-200 active:scale-95 hover:shadow-xl ${
+                          displayRunner
+                            ? 'btn-success animate-pulse-gentle'
+                            : 'bg-white/10 text-white/30 cursor-not-allowed'
+                        }`}
+                      >
+                        <span className="flex items-center justify-center gap-1">
+                          <span>+</span>
+                          <span>記圈</span>
+                            {displayRunner && <Sparkles className="w-4 h-4 ml-1" />}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ══ 跑者輪播顯示（前後各二人，中間最大） ══ */}
+              {sortedStats.length > 0 && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end gap-2 z-10">
+                  {(() => {
+                    const currentIndex = sortedStats.findIndex(s => s.name === displayRunner)
+                    const startIndex = Math.max(0, currentIndex - 2)
+                    const endIndex = Math.min(sortedStats.length - 1, currentIndex + 2)
+                    const visibleStats = sortedStats.slice(startIndex, endIndex + 1)
+
+                    return visibleStats.map((s, idx) => {
+                      const actualIndex = startIndex + idx
+                      const isCurrent = s.name === displayRunner
+                      const distance = Math.abs(actualIndex - currentIndex)
+                      const scale = isCurrent ? 1 : Math.max(0.6, 1 - distance * 0.15)
+                      const opacity = isCurrent ? 1 : Math.max(0.4, 1 - distance * 0.2)
+
+                      return (
+                        <button
+                          key={s.name}
+                          onClick={() => setDisplayRunner(s.name)}
+                          className={`rounded-xl p-2 min-w-[140px] text-right transition-all duration-300 hover:scale-105 ${
+                            isCurrent ? 'shadow-2xl' : 'hover:shadow-lg'
+                          }`}
+                          style={{
+                            background: isCurrent ? skin.displayCard : 'rgba(255,255,255,0.1)',
+                            border: isCurrent ? `2px solid ${skin.displayAccent}` : '2px solid transparent',
+                            transform: `scale(${scale})`,
+                            opacity: opacity,
+                          }}
+                        >
+                          <div className={`flex items-center justify-between gap-2 ${isCurrent ? 'flex-row-reverse' : ''}`}>
+                            <div className="flex-1">
+                              <div className={`font-bold truncate ${isCurrent ? 'text-2xl' : 'text-sm'} text-white`}>
+                                {s.name}
+                              </div>
+                              <div className={`font-black ${isCurrent ? 'text-3xl' : 'text-xl'} text-white tabular-nums`}
+                                   style={{ color: isCurrent ? skin.displayAccent : 'rgba(255,255,255,0.8)' }}>
+                                {s.totalLaps}
+                              </div>
+                            </div>
+                            <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-black shrink-0 ${
+                              actualIndex === 0 ? 'bg-yellow-500 text-yellow-900' :
+                              actualIndex === 1 ? 'bg-gray-300 text-gray-700' :
+                              actualIndex === 2 ? 'bg-amber-700 text-amber-100' :
+                              'bg-white/20 text-white'
+                            }`}>
+                              {actualIndex + 1}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })
+                  })()}
+                </div>
+              )}
+
+              <div className="absolute bottom-4 right-4 z-10 w-[280px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.2em] text-white/50">跑者順序</div>
+                    <div className="text-sm text-white/80">依登記時段排列</div>
+                  </div>
+                  <span className="text-xs text-green-200 font-bold">順序</span>
+                </div>
+                <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                  {runnerOrder.slice(0, 6).map((s, idx) => (
+                    <div key={s.token || s.name} className={`flex items-center justify-between rounded-2xl px-3 py-2 transition ${s.name === displayRunner ? 'bg-white/15' : 'bg-white/5'}`}>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold truncate">{s.name}</div>
+                        <div className="text-[10px] text-white/50">{s.earliestSlot === '99:99' ? '未指定時段' : s.earliestSlot}</div>
+                      </div>
+                      <div className="text-xs font-bold text-white/90">{idx + 1}</div>
                     </div>
                   ))}
                 </div>
-              )}
+                {displayRunner && expectedSlot && (
+                  <div className="mt-3 rounded-2xl bg-white/10 p-3">
+                    <div className="text-[10px] text-white/50 uppercase tracking-[0.2em] mb-2">預期時間比較</div>
+                    <div className="text-sm text-white">{displayRunner} 預定 {expectedSlot}</div>
+                    <div className="mt-2 text-lg font-bold">
+                      {scheduleDelta === null
+                        ? '請先開始計時'
+                        : scheduleDelta === 0
+                          ? '剛好準時'
+                          : scheduleDelta > 0
+                            ? `慢 ${Math.abs(scheduleDelta)} 分鐘`
+                            : `快 ${Math.abs(scheduleDelta)} 分鐘`}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* 手動修改圈數彈窗 */}
+            {showEditLapModal && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={() => setShowEditLapModal(false)}>
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                <div className="relative w-full max-w-lg rounded-3xl bg-slate-950/95 border border-white/10 shadow-2xl p-6 text-white" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold">手動修改圈數</h3>
+                      <p className="text-sm text-slate-400">可修改跑者、圈數與時間，或直接調整總圈數。</p>
+                    </div>
+                    <button onClick={() => setShowEditLapModal(false)} className="text-white/60 hover:text-white"><X className="w-5 h-5" /></button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase tracking-[0.2em]">目前跑者修改</label>
+                      <select
+                        value={editLapRunner}
+                        onChange={e => setEditLapRunner(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:outline-none focus:border-sky-400"
+                      >
+                        <option value="">請選擇跑者</option>
+                        {allRunners.map(name => <option key={name} value={name}>{name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase tracking-[0.2em]">跑者的第幾圈修改</label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={editLapNumber}
+                        onChange={e => setEditLapNumber(e.target.value)}
+                        placeholder="圈數編號"
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:outline-none focus:border-sky-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase tracking-[0.2em]">時間修改</label>
+                      <input
+                        type="time"
+                        value={editLapTime}
+                        onChange={e => setEditLapTime(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:outline-none focus:border-sky-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase tracking-[0.2em]">總圈數增減</label>
+                      <input
+                        type="number"
+                        value={editLapAdjustment}
+                        onChange={e => setEditLapAdjustment(e.target.value)}
+                        placeholder="正數增加，負數減少"
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:outline-none focus:border-sky-400"
+                      />
+                    </div>
+                    {editLapError && (
+                      <div className="rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-200">
+                        {editLapError}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-6 flex items-center justify-end gap-3">
+                    <button onClick={() => setShowEditLapModal(false)} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">取消</button>
+                    <button onClick={saveLapModification} className="rounded-2xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-400">儲存修改</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ══ 個人統計滑出面板 (Drawer) ══ */}
+            {displayDrawerOpen && (
+              <div className="fixed inset-0 z-[60] flex justify-end" onClick={() => setDisplayDrawerOpen(false)}>
+                {/* 背景遮罩 */}
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"/>
+                {/* 面板 */}
+                <div className="relative w-full max-w-md h-full overflow-y-auto shadow-2xl"
+                  style={{ background: skin.displayBg }}
+                  onClick={e => e.stopPropagation()}>
+                  {/* 面板標題 */}
+                  <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between border-b border-white/10" style={{ background: skin.displayCard, backdropFilter: 'blur(12px)' }}>
+                    <div>
+                      <h2 className="text-lg font-black text-white">個人統計</h2>
+                      <p className="text-xs text-white/40">共 {sortedStats.length} 位跑者，{totalLaps} 圈</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={exportDisplayLaps} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 flex items-center gap-1"><FileDown className="w-3 h-3" /> 匯出 CSV</button>
+                      <button onClick={() => setDisplayDrawerOpen(false)} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"><X className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                  {/* 跑者列表 */}
+                  <div className="p-4 space-y-2">
+                    {sortedStats.length === 0 ? (
+                      <div className="text-center text-white/30 py-16">尚無圈數記錄</div>
+                    ) : sortedStats.map((s, idx) => {
+                      const laps = getRunnerLaps(s.name).sort((a, b) => a.timestamp - b.timestamp)
+                      return (
+                        <details key={s.name} className="rounded-xl overflow-hidden group" style={{ background: skin.displayCard }}>
+                          <summary className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/5 transition-colors list-none [&::-webkit-details-marker]:hidden">
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
+                              idx === 0 ? 'bg-yellow-500 text-yellow-900' : idx === 1 ? 'bg-gray-300 text-gray-700' : idx === 2 ? 'bg-amber-700 text-amber-100' : 'bg-white/10 text-white/50'
+                            }`}>{idx + 1}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-white truncate">{s.name}</div>
+                            </div>
+                            <div className="text-3xl font-black shrink-0" style={{ color: skin.displayAccent }}>{s.totalLaps}</div>
+                            <span className="text-xs text-white/30 shrink-0 ml-1">圈</span>
+                            <ChevronRight className="text-white/20 w-4 h-4 ml-2 group-open:rotate-90 transition-transform" />
+                          </summary>
+                          <div className="px-4 pb-4 pt-1 border-t border-white/5">
+                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+                              {laps.map((lap, i) => (
+                                <div key={lap.id} className="rounded-lg bg-white/5 p-2 text-center group/lap relative">
+                                  <div className="text-base font-black" style={{ color: skin.displayAccent }}>{i + 1}</div>
+                                  <div className="text-[9px] text-white/40 font-mono">{lap.time}</div>
+                                  <button
+                                    onClick={() => deleteLapRecord(lap.id)}
+                                    className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-transparent text-transparent group-hover/lap:bg-red-500 group-hover/lap:text-white flex items-center justify-center transition-all"
+                                  ><X className="w-3 h-3" /></button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </details>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+          )
+        })()}
 
         {/* ═══════════════════════════════
             管理介面
         ═══════════════════════════════ */}
         {activeTab === 'admin' && !adminUnlocked && (
-          <div className="max-w-sm mx-auto mt-12">
-            <div className="rounded-3xl shadow-2xl overflow-hidden">
-              <div className="px-8 pt-10 pb-8 text-center"
+          <div className="max-w-sm mx-auto mt-12 animate-fade-in">
+            <div className="card-dark overflow-hidden">
+              <div className="px-8 pt-10 pb-8 text-center animate-slide-in"
                 style={{ background: skin.adminGrad }}>
-                <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-4xl mx-auto mb-4 shadow-inner">🔒</div>
-                <h2 className="text-xl font-black text-white mb-1">管理員驗證</h2>
+                <div className="w-20 h-20 rounded-3xl bg-white/20 backdrop-blur flex items-center justify-center mx-auto mb-4 shadow-lg animate-bounce-in"><Lock className="w-10 h-10 text-white" /></div>
+                <h2 className="text-2xl font-black text-white mb-1">管理員驗證</h2>
                 <p className="text-sm text-blue-200">請輸入管理密碼以繼續</p>
               </div>
               <div className="bg-white px-8 py-6">
-                <input
-                  type="password"
-                  value={adminPwInput}
-                  onChange={e => { setAdminPwInput(e.target.value); setAdminPwError(false) }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
-                      else { setAdminPwError(true); setAdminPwInput('') }
-                    }
-                  }}
-                  placeholder="輸入密碼..."
-                  className={`w-full border-2 rounded-xl px-4 py-3 text-base text-center focus:outline-none mb-3 transition-colors ${adminPwError ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-blue-400'}`}
-                  autoFocus
-                />
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={adminPwInput}
+                    onChange={e => { setAdminPwInput(e.target.value); setAdminPwError(false) }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
+                        else { setAdminPwError(true); setAdminPwInput('') }
+                      }
+                    }}
+                    placeholder="輸入密碼..."
+                    className={`input-primary text-center ${adminPwError ? 'border-red-400 bg-red-50 focus:border-red-400' : ''}`}
+                    autoFocus
+                  />
+                  {adminPwInput && !adminPwError && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 animate-pulse-gentle">
+                      <Check className="w-5 h-5" />
+                    </div>
+                  )}
+                </div>
                 {adminPwError && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-sm text-red-600 text-center mb-3">
-                    ❌ 密碼錯誤，請再試一次
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-sm text-red-600 text-center mb-3 animate-fade-in">
+                    <span className="flex items-center justify-center gap-2">
+                      <XCircle className="w-5 h-5" />
+                      <span>密碼錯誤，請再試一次</span>
+                    </span>
                   </div>
                 )}
                 <button
@@ -1077,8 +1786,14 @@ export default function LoveRunTracker() {
                     if (adminPwInput === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminPwInput('') }
                     else { setAdminPwError(true); setAdminPwInput('') }
                   }}
-                  className={`w-full bg-gradient-to-r ${skin.btnGrad} text-white py-3 rounded-xl text-base font-bold ${skin.btnHover} transition-all shadow-md`}
-                >進入管理 →</button>
+                  className={`w-full btn-primary ${adminPwInput ? 'animate-pulse-gentle' : ''}`}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <Unlock className="w-5 h-5" />
+                    <span>進入管理</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                </button>
               </div>
             </div>
           </div>
@@ -1090,8 +1805,8 @@ export default function LoveRunTracker() {
             <div className="flex justify-end">
               <button
                 onClick={() => { setAdminUnlocked(false); setAdminPwInput('') }}
-                className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
-              >🔓 登出管理</button>
+                className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1.5"
+              ><Unlock className="w-3 h-3" /> 登出管理</button>
             </div>
             {/* 活動設定 */}
             <div className="bg-white rounded-xl shadow p-4">
@@ -1111,9 +1826,21 @@ export default function LoveRunTracker() {
                   ) : (
                     <>
                       <span className="flex-1 font-semibold text-gray-800">{eventName}</span>
-                      <button onClick={() => { setTempEventName(eventName); setEditingEventName(true) }} className="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-sm hover:bg-blue-100">✏️ 修改</button>
+                      <button onClick={() => { setTempEventName(eventName); setEditingEventName(true) }} className="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-sm hover:bg-blue-100 flex items-center gap-1"><Pencil className="w-3 h-3" /> 修改</button>
                     </>
                   )}
+                </div>
+
+                {/* 活動日期 */}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-gray-500 shrink-0 w-20">活動日期</label>
+                  <input
+                    type="text"
+                    value={eventDate}
+                    onChange={e => saveEventDate(e.target.value)}
+                    placeholder="例：2026年5月10日（六）"
+                    className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
                 </div>
 
                 {/* 結束時間 */}
@@ -1181,7 +1908,7 @@ export default function LoveRunTracker() {
                     {participants.map(name => (
                       <span key={name} className="flex items-center gap-1 bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
                         {name}
-                        <button onClick={() => deleteParticipant(name)} className="text-gray-400 hover:text-red-500 leading-none">×</button>
+                        <button onClick={() => deleteParticipant(name)} className="text-gray-400 hover:text-red-500 leading-none"><X className="w-3 h-3" /></button>
                       </span>
                     ))}
                   </div>
@@ -1240,9 +1967,9 @@ export default function LoveRunTracker() {
                       )}
                       <div className="flex gap-2 shrink-0">
                         {editingSchedule?.id === s.id ? (
-                          <><button onClick={saveEditSchedule} className="text-green-600 text-sm">✓ 儲存</button><button onClick={() => setEditingSchedule(null)} className="text-gray-400 text-sm">✕</button></>
+                          <><button onClick={saveEditSchedule} className="text-green-600 text-sm flex items-center gap-1"><Check className="w-4 h-4" /> 儲存</button><button onClick={() => setEditingSchedule(null)} className="text-gray-400 text-sm flex items-center gap-1"><X className="w-4 h-4" /></button></>
                         ) : (
-                          <><button onClick={() => setEditingSchedule({...s})} className="text-blue-400 hover:text-blue-600">✏️</button><button onClick={() => deleteSchedule(s.id)} className="text-red-400 hover:text-red-600">🗑️</button></>
+                          <><button onClick={() => setEditingSchedule({...s})} className="text-blue-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button><button onClick={() => deleteSchedule(s.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button></>
                         )}
                       </div>
                     </div>
@@ -1268,7 +1995,7 @@ export default function LoveRunTracker() {
                     >依時段</button>
                   </div>
                 </div>
-                <button onClick={exportSignups} className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-200">📥 匯出</button>
+                <button onClick={exportSignups} className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-200 flex items-center gap-1"><FileDown className="w-3 h-3" /> 匯出</button>
               </div>
 
               {signups.length === 0 ? <p className="text-gray-400 text-sm">尚無登記</p> : (
@@ -1293,7 +2020,7 @@ export default function LoveRunTracker() {
                           </div>
                           <button
                             onClick={async () => { if (confirm(`確定要刪除「${s.name}」的登記？`)) await deleteDoc(doc(db, 'signups', s.token)) }}
-                            className="text-red-400 hover:text-red-600 shrink-0">🗑️</button>
+                          className="text-red-400 hover:text-red-600 shrink-0"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       ))}
                     </div>
@@ -1306,11 +2033,14 @@ export default function LoveRunTracker() {
                         const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
                         return (
                           <div key={block.label + block.start} className="flex items-start gap-1.5 sm:gap-2 px-1.5 sm:px-2 py-1 rounded-xl hover:bg-gray-50">
-                            <div className={`shrink-0 w-12 sm:w-14 rounded-lg border text-center py-1 leading-tight ${LABEL_STYLE[block.type]}`}>
-                              {ICON_MAP[block.type] && <div className="text-xs leading-none mb-0.5">{ICON_MAP[block.type]}</div>}
-                              <div className="text-[10px] sm:text-xs font-bold">{block.label}</div>
-                              <div className="text-[8px] opacity-60 mt-0.5">{block.start}</div>
-                              <div className="text-[8px] opacity-60">–{block.end}</div>
+                            <div className={`shrink-0 w-14 sm:w-16 rounded-xl border text-center py-1.5 leading-tight ${LABEL_STYLE[block.type]}`}>
+                            {ICON_MAP[block.type] && (() => {
+                              const Icon = ICON_MAP[block.type];
+                              return <div className="flex justify-center mb-0.5"><Icon className={`w-4 h-4 ${skin.iconColor}`} /></div>
+                            })()}
+                              <div className="text-xs sm:text-sm font-bold">{block.label}</div>
+                              <div className="text-[9px] sm:text-[10px] opacity-60 mt-0.5">{block.start}</div>
+                              <div className="text-[9px] sm:text-[10px] opacity-60">–{block.end}</div>
                             </div>
                             <div className="flex flex-wrap gap-0.5 sm:gap-1 flex-1">
                               {blockSlots.map(slot => {
@@ -1403,7 +2133,7 @@ export default function LoveRunTracker() {
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="hidden sm:block"><Legend /></div>
-                        <button onClick={() => { setAdminGridToken(null); setAdminGridSlots([]) }} className="text-gray-400 hover:text-gray-600 text-2xl leading-none ml-2">×</button>
+                        <button onClick={() => { setAdminGridToken(null); setAdminGridSlots([]) }} className="text-gray-400 hover:text-gray-600 leading-none ml-2"><X className="w-5 h-5" /></button>
                       </div>
                     </div>
 
@@ -1414,7 +2144,7 @@ export default function LoveRunTracker() {
                         {[...adminGridSlots].sort().map(s => (
                           <span key={s} className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
                             {s}
-                            <button onClick={() => toggleAdminSlot(s)} className="hover:text-blue-200">×</button>
+                            <button onClick={() => toggleAdminSlot(s)} className="hover:text-blue-200"><X className="w-3 h-3" /></button>
                           </span>
                         ))}
                       </div>
@@ -1429,11 +2159,14 @@ export default function LoveRunTracker() {
                         return (
                           <div key={block.label + block.start}
                             className={`flex items-start gap-1.5 sm:gap-2 px-1.5 sm:px-2 py-1.5 rounded-xl transition-colors ${anySelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                            <div className={`shrink-0 w-12 sm:w-14 rounded-lg border text-center py-1 leading-tight ${activeLabelStyle}`}>
-                              {ICON_MAP[block.type] && <div className="text-xs leading-none mb-0.5">{ICON_MAP[block.type]}</div>}
-                              <div className="text-[10px] sm:text-xs font-bold">{block.label}</div>
-                              <div className="text-[8px] opacity-60 mt-0.5">{block.start}</div>
-                              <div className="text-[8px] opacity-60">–{block.end}</div>
+                            <div className={`shrink-0 w-14 sm:w-16 rounded-xl border text-center py-1.5 leading-tight ${activeLabelStyle}`}>
+                            {ICON_MAP[block.type] && (() => {
+                              const Icon = ICON_MAP[block.type];
+                              return <div className="flex justify-center mb-0.5"><Icon className={`w-4 h-4 ${anySelected ? 'text-white' : skin.iconColor}`} /></div>
+                            })()}
+                              <div className="text-xs sm:text-sm font-bold">{block.label}</div>
+                              <div className="text-[9px] sm:text-[10px] opacity-60 mt-0.5">{block.start}</div>
+                              <div className="text-[9px] sm:text-[10px] opacity-60">–{block.end}</div>
                             </div>
                             <div className="flex flex-wrap gap-1 flex-1">
                               {blockSlots.map(slot => {
@@ -1486,17 +2219,20 @@ export default function LoveRunTracker() {
 
             {/* 統計資料 */}
             <div className="bg-white rounded-xl shadow p-4">
-              <h2 className="font-bold text-gray-700 mb-4">📊 統計資料</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: skin.cardGrad }}><BarChart3 className="w-5 h-5 text-white" /></div>
+                <h2 className="font-bold text-gray-700 text-base sm:text-lg">統計資料</h2>
+              </div>
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {[
-                  ['總圈數', lapRecords.length, skin.statCards[0], '🏃'],
-                  ['參加人數', stats.length, skin.statCards[1], '👥'],
-                  ['登記時段數', signups.reduce((a,s)=>a+s.slots.length,0), skin.statCards[2], '📅'],
-                ].map(([label, val, grad, icon]) => (
-                  <div key={label} className={`bg-gradient-to-br ${grad} rounded-2xl shadow p-3 text-center text-white`}>
-                    <div className="text-lg mb-0.5">{icon}</div>
-                    <div className="text-2xl font-black leading-none">{val}</div>
-                    <div className="text-[10px] opacity-80 mt-1 leading-tight">{label}</div>
+                  ['總圈數', lapRecords.length, skin.statCards[0], Activity],
+                  ['參加人數', stats.length, skin.statCards[1], Users],
+                  ['登記時段數', signups.reduce((a,s)=>a+s.slots.length,0), skin.statCards[2], CalendarCheck],
+                ].map(([label, val, grad, Icon]) => (
+                  <div key={label} className={`bg-gradient-to-br ${grad} rounded-2xl shadow p-3 sm:p-4 text-center text-white`}>
+                    <div className="mb-2 flex justify-center"><Icon className="w-6 h-6 sm:w-8 sm:h-8 opacity-90" /></div>
+                    <div className="text-2xl sm:text-3xl font-black leading-none">{val}</div>
+                    <div className="text-[10px] sm:text-xs opacity-80 mt-1.5 leading-tight font-medium">{label}</div>
                   </div>
                 ))}
               </div>
@@ -1524,7 +2260,7 @@ export default function LoveRunTracker() {
               <div className="border-t pt-3">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-bold text-gray-600">個人圈數統計</h3>
-                  <button onClick={exportResults} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-700">📥 匯出 CSV</button>
+                  <button onClick={exportResults} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-700 flex items-center gap-1"><FileDown className="w-3 h-3" /> 匯出 CSV</button>
                 </div>
                 {stats.length === 0 ? <p className="text-gray-400 text-sm">尚無記錄</p> : (
                   <div className="overflow-x-auto">
@@ -1572,6 +2308,50 @@ export default function LoveRunTracker() {
           </div>
         )}
       </main>
+
+      {/* 確認對話框 */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDialog(null)}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-bounce-in">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mx-auto mb-4 shadow-lg"><AlertTriangle className="w-8 h-8 text-white" /></div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">{confirmDialog.title}</h3>
+              <p className="text-gray-600 text-sm mb-6">{confirmDialog.message}</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    confirmDialog.onCancel?.()
+                    setConfirmDialog(null)
+                  }}
+                  className="flex-1 btn-secondary"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    confirmDialog.onConfirm?.()
+                    setConfirmDialog(null)
+                  }}
+                  className="flex-1 btn-danger"
+                >
+                  確認
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 工具提示 */}
+      {tooltip && (
+        <div
+          className="fixed z-[90] bg-gray-800 text-white text-sm px-3 py-2 rounded-lg shadow-lg pointer-events-none animate-fade-in"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
+          {tooltip.text}
+        </div>
+      )}
     </div>
   )
 }
