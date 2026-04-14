@@ -90,7 +90,7 @@ const parseTodayTime = (hhmm) => {
 }
 
 // 產生 token（8位隨機英數）
-const genToken = () => Math.random().toString(36).slice(2, 10).toUpperCase()
+const genToken = () => String(Math.floor(1000 + Math.random() * 9000))
 
 const BEEP_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEfAzuM1O/1dy0FIHfI7NyOPggXZbjmqqtVFgw+ltv7w3QpBSmBzvHYhTZJQJ7Y8LlqHAY3kNTv1XIqBSl8xuzcjTwIC2m06vKVVQwNUKzlmn7tBA=='
 
@@ -915,28 +915,6 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                       <div className="text-[10px] sm:text-xs opacity-80 mt-1.5 leading-tight font-medium">{label}</div>
                     </div>
                   ))}
-                </div>
-
-                {/* 開始計時 */}
-                <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-5 border border-gray-100 mb-4">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-bold text-gray-800">活動計時</h3>
-                      <p className="text-sm text-gray-500">開始後會顯示已進行時間，讓現場更好掌握進度。</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={timerRunning ? resetTimer : startTimer}
-                        className={`btn-primary ${timerRunning ? 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : ''}`}
-                      >
-                        {timerRunning ? '重設計時' : '開始計時'}
-                      </button>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-400">已進行</p>
-                        <p className="text-lg font-black text-gray-800">{timerRunning ? elapsedTimeDisplay : '00:00:00'}</p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 {/* 登記表單卡片 */}
@@ -1822,6 +1800,26 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1.5"
               ><Unlock className="w-3 h-3" /> 登出管理</button>
             </div>
+            {/* 活動計時 */}
+            <div className="bg-white rounded-xl shadow p-4 mb-4">
+              <h2 className="font-bold text-gray-700 mb-3">活動計時</h2>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="text-sm text-gray-500">開始後會顯示已進行時間，讓現場更好掌握進度。</p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={timerRunning ? resetTimer : startTimer}
+                    className={`btn-primary ${timerRunning ? 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : ''}`}
+                  >
+                    {timerRunning ? '重設計時' : '開始計時'}
+                  </button>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">已進行</p>
+                    <p className="text-lg font-black text-gray-800">{timerRunning ? elapsedTimeDisplay : '00:00:00'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* 活動設定 */}
             <div className="bg-white rounded-xl shadow p-4">
               <h2 className="font-bold text-gray-700 mb-4">活動設定</h2>
