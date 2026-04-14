@@ -79,11 +79,11 @@ const MAX_PER_SLOT = 0 // 已停用，保留供參考
 
 // ── 主題 Skin ──
 const SKINS = {
-  ocean:  { name: '深海藍', header: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #0891b2 100%)', page: 'from-slate-100 via-blue-50 to-emerald-50', accent: 'blue', tabActive: 'bg-white text-blue-700 shadow-md', tabInactive: 'text-blue-100 hover:bg-white/20', subtextHeader: 'text-blue-200', badgeColor: 'text-yellow-300', btnGrad: 'from-blue-600 to-blue-500', btnHover: 'hover:from-blue-700 hover:to-blue-600', cardGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #0891b2 100%)', adminGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)', statCards: ['from-blue-500 to-blue-600','from-emerald-500 to-emerald-600','from-violet-500 to-violet-600'] },
-  sunset: { name: '日落橙', header: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 50%, #f59e0b 100%)', page: 'from-orange-50 via-amber-50 to-yellow-50', accent: 'orange', tabActive: 'bg-white text-orange-700 shadow-md', tabInactive: 'text-orange-100 hover:bg-white/20', subtextHeader: 'text-orange-200', badgeColor: 'text-yellow-200', btnGrad: 'from-orange-600 to-amber-500', btnHover: 'hover:from-orange-700 hover:to-amber-600', cardGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 60%, #f59e0b 100%)', adminGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)', statCards: ['from-orange-500 to-orange-600','from-amber-500 to-amber-600','from-rose-500 to-rose-600'] },
-  forest: { name: '森林綠', header: 'linear-gradient(135deg, #14532d 0%, #16a34a 50%, #22d3ee 100%)', page: 'from-green-50 via-emerald-50 to-teal-50', accent: 'green', tabActive: 'bg-white text-green-700 shadow-md', tabInactive: 'text-green-100 hover:bg-white/20', subtextHeader: 'text-green-200', badgeColor: 'text-yellow-300', btnGrad: 'from-green-600 to-emerald-500', btnHover: 'hover:from-green-700 hover:to-emerald-600', cardGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 60%, #22d3ee 100%)', adminGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)', statCards: ['from-green-500 to-green-600','from-teal-500 to-teal-600','from-cyan-500 to-cyan-600'] },
-  sakura: { name: '櫻花粉', header: 'linear-gradient(135deg, #831843 0%, #db2777 50%, #f472b6 100%)', page: 'from-pink-50 via-rose-50 to-fuchsia-50', accent: 'pink', tabActive: 'bg-white text-pink-700 shadow-md', tabInactive: 'text-pink-100 hover:bg-white/20', subtextHeader: 'text-pink-200', badgeColor: 'text-yellow-200', btnGrad: 'from-pink-600 to-rose-500', btnHover: 'hover:from-pink-700 hover:to-rose-600', cardGrad: 'linear-gradient(135deg, #831843 0%, #db2777 60%, #f472b6 100%)', adminGrad: 'linear-gradient(135deg, #831843 0%, #db2777 100%)', statCards: ['from-pink-500 to-pink-600','from-rose-500 to-rose-600','from-fuchsia-500 to-fuchsia-600'] },
-  night:  { name: '暗夜紫', header: 'linear-gradient(135deg, #312e81 0%, #7c3aed 50%, #a855f7 100%)', page: 'from-violet-50 via-purple-50 to-indigo-50', accent: 'purple', tabActive: 'bg-white text-purple-700 shadow-md', tabInactive: 'text-purple-100 hover:bg-white/20', subtextHeader: 'text-purple-200', badgeColor: 'text-yellow-300', btnGrad: 'from-purple-600 to-violet-500', btnHover: 'hover:from-purple-700 hover:to-violet-600', cardGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 60%, #a855f7 100%)', adminGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 100%)', statCards: ['from-purple-500 to-purple-600','from-violet-500 to-violet-600','from-indigo-500 to-indigo-600'] },
+  ocean:  { name: '深海藍', header: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #0891b2 100%)', page: 'from-slate-200 via-blue-100 to-cyan-100', accent: 'blue', tabActive: 'bg-white text-blue-700 shadow-md', tabInactive: 'text-blue-100 hover:bg-white/20', subtextHeader: 'text-blue-200', badgeColor: 'text-yellow-300', btnGrad: 'from-blue-600 to-blue-500', btnHover: 'hover:from-blue-700 hover:to-blue-600', cardGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #0891b2 100%)', adminGrad: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)', statCards: ['from-blue-500 to-blue-600','from-emerald-500 to-emerald-600','from-violet-500 to-violet-600'] },
+  sunset: { name: '日落橙', header: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 50%, #f59e0b 100%)', page: 'from-orange-100 via-amber-100 to-yellow-100', accent: 'orange', tabActive: 'bg-white text-orange-700 shadow-md', tabInactive: 'text-orange-100 hover:bg-white/20', subtextHeader: 'text-orange-200', badgeColor: 'text-yellow-200', btnGrad: 'from-orange-600 to-amber-500', btnHover: 'hover:from-orange-700 hover:to-amber-600', cardGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 60%, #f59e0b 100%)', adminGrad: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)', statCards: ['from-orange-500 to-orange-600','from-amber-500 to-amber-600','from-rose-500 to-rose-600'] },
+  forest: { name: '森林綠', header: 'linear-gradient(135deg, #14532d 0%, #16a34a 50%, #22d3ee 100%)', page: 'from-green-100 via-emerald-100 to-teal-100', accent: 'green', tabActive: 'bg-white text-green-700 shadow-md', tabInactive: 'text-green-100 hover:bg-white/20', subtextHeader: 'text-green-200', badgeColor: 'text-yellow-300', btnGrad: 'from-green-600 to-emerald-500', btnHover: 'hover:from-green-700 hover:to-emerald-600', cardGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 60%, #22d3ee 100%)', adminGrad: 'linear-gradient(135deg, #14532d 0%, #16a34a 100%)', statCards: ['from-green-500 to-green-600','from-teal-500 to-teal-600','from-cyan-500 to-cyan-600'] },
+  sakura: { name: '櫻花粉', header: 'linear-gradient(135deg, #831843 0%, #db2777 50%, #f472b6 100%)', page: 'from-pink-100 via-rose-100 to-fuchsia-100', accent: 'pink', tabActive: 'bg-white text-pink-700 shadow-md', tabInactive: 'text-pink-100 hover:bg-white/20', subtextHeader: 'text-pink-200', badgeColor: 'text-yellow-200', btnGrad: 'from-pink-600 to-rose-500', btnHover: 'hover:from-pink-700 hover:to-rose-600', cardGrad: 'linear-gradient(135deg, #831843 0%, #db2777 60%, #f472b6 100%)', adminGrad: 'linear-gradient(135deg, #831843 0%, #db2777 100%)', statCards: ['from-pink-500 to-pink-600','from-rose-500 to-rose-600','from-fuchsia-500 to-fuchsia-600'] },
+  night:  { name: '暗夜紫', header: 'linear-gradient(135deg, #312e81 0%, #7c3aed 50%, #a855f7 100%)', page: 'from-violet-100 via-purple-100 to-indigo-100', accent: 'purple', tabActive: 'bg-white text-purple-700 shadow-md', tabInactive: 'text-purple-100 hover:bg-white/20', subtextHeader: 'text-purple-200', badgeColor: 'text-yellow-300', btnGrad: 'from-purple-600 to-violet-500', btnHover: 'hover:from-purple-700 hover:to-violet-600', cardGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 60%, #a855f7 100%)', adminGrad: 'linear-gradient(135deg, #312e81 0%, #7c3aed 100%)', statCards: ['from-purple-500 to-purple-600','from-violet-500 to-violet-600','from-indigo-500 to-indigo-600'] },
 }
 
 // ── 往年回顧資料 ──
@@ -523,7 +523,6 @@ export default function LoveRunTracker() {
 
   const TABS = [
     { key: 'signup', label: '📋 報名登記' },
-    { key: 'stats', label: '📊 統計資料' },
     { key: 'display', label: '📺 展示' },
     { key: 'admin', label: '⚙️ 管理' },
   ]
@@ -997,74 +996,6 @@ export default function LoveRunTracker() {
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* ═══════════════════════════════
-            統計資料
-        ═══════════════════════════════ */}
-        {activeTab === 'stats' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                ['總圈數', lapRecords.length, skin.statCards[0], '🏃'],
-                ['參加人數', stats.length, skin.statCards[1], '👥'],
-                ['登記時段數', signups.reduce((a,s)=>a+s.slots.length,0), skin.statCards[2], '📅'],
-              ].map(([label, val, grad, icon]) => (
-                <div key={label} className={`bg-gradient-to-br ${grad} rounded-2xl shadow-lg p-4 text-center text-white`}>
-                  <div className="text-2xl mb-1">{icon}</div>
-                  <div className="text-3xl font-black leading-none">{val}</div>
-                  <div className="text-[11px] opacity-80 mt-1.5 leading-tight">{label}</div>
-                </div>
-              ))}
-            </div>
-            {schedules.length > 0 && (
-              <div className="bg-white rounded-xl shadow p-4">
-                <h2 className="font-bold text-gray-700 mb-3">各時段圈數</h2>
-                <div className="space-y-2">
-                  {schedules.map(s => {
-                    const count = lapRecords.filter(r => r.scheduleId === s.id).length
-                    const max = Math.max(...schedules.map(ss => lapRecords.filter(r => r.scheduleId === ss.id).length), 1)
-                    return (
-                      <div key={s.id} className="flex items-center gap-3">
-                        <div className="w-14 text-sm text-gray-600 shrink-0">{s.time}</div>
-                        <div className="text-sm text-gray-700 w-20 shrink-0 truncate">{s.class}</div>
-                        <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
-                          <div className="bg-blue-400 h-4 rounded-full transition-all" style={{ width: `${(count/max)*100}%` }}/>
-                        </div>
-                        <div className="text-sm font-bold text-blue-600 w-8 text-right shrink-0">{count}</div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-            <div className="bg-white rounded-xl shadow p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold text-gray-700">個人圈數統計</h2>
-                <button onClick={exportResults} className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700">📥 匯出 CSV</button>
-              </div>
-              {stats.length === 0 ? <p className="text-gray-400 text-sm">尚無記錄</p> : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead><tr className="border-b text-gray-500 text-left">
-                      <th className="pb-2 font-medium">姓名</th>
-                      <th className="pb-2 font-medium text-right">總圈數</th>
-                      <th className="pb-2 font-medium pl-4">參與時段</th>
-                    </tr></thead>
-                    <tbody>
-                      {stats.map(s => (
-                        <tr key={s.name} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="py-2 font-medium text-gray-800">{s.name}</td>
-                          <td className="py-2 text-right font-bold text-blue-600">{s.totalLaps}</td>
-                          <td className="py-2 pl-4 text-gray-400 text-xs">{s.classes}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -1552,6 +1483,71 @@ export default function LoveRunTracker() {
                 </div>
               )
             })()}
+
+            {/* 統計資料 */}
+            <div className="bg-white rounded-xl shadow p-4">
+              <h2 className="font-bold text-gray-700 mb-4">📊 統計資料</h2>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {[
+                  ['總圈數', lapRecords.length, skin.statCards[0], '🏃'],
+                  ['參加人數', stats.length, skin.statCards[1], '👥'],
+                  ['登記時段數', signups.reduce((a,s)=>a+s.slots.length,0), skin.statCards[2], '📅'],
+                ].map(([label, val, grad, icon]) => (
+                  <div key={label} className={`bg-gradient-to-br ${grad} rounded-2xl shadow p-3 text-center text-white`}>
+                    <div className="text-lg mb-0.5">{icon}</div>
+                    <div className="text-2xl font-black leading-none">{val}</div>
+                    <div className="text-[10px] opacity-80 mt-1 leading-tight">{label}</div>
+                  </div>
+                ))}
+              </div>
+              {schedules.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-bold text-gray-600 mb-2">各時段圈數</h3>
+                  <div className="space-y-2">
+                    {schedules.map(s => {
+                      const count = lapRecords.filter(r => r.scheduleId === s.id).length
+                      const max = Math.max(...schedules.map(ss => lapRecords.filter(r => r.scheduleId === ss.id).length), 1)
+                      return (
+                        <div key={s.id} className="flex items-center gap-3">
+                          <div className="w-14 text-sm text-gray-600 shrink-0">{s.time}</div>
+                          <div className="text-sm text-gray-700 w-20 shrink-0 truncate">{s.class}</div>
+                          <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                            <div className="bg-blue-400 h-4 rounded-full transition-all" style={{ width: `${(count/max)*100}%` }}/>
+                          </div>
+                          <div className="text-sm font-bold text-blue-600 w-8 text-right shrink-0">{count}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="border-t pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-bold text-gray-600">個人圈數統計</h3>
+                  <button onClick={exportResults} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-700">📥 匯出 CSV</button>
+                </div>
+                {stats.length === 0 ? <p className="text-gray-400 text-sm">尚無記錄</p> : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-gray-500 text-left">
+                        <th className="pb-2 font-medium">姓名</th>
+                        <th className="pb-2 font-medium text-right">總圈數</th>
+                        <th className="pb-2 font-medium pl-4">參與時段</th>
+                      </tr></thead>
+                      <tbody>
+                        {stats.map(s => (
+                          <tr key={s.name} className="border-b last:border-0 hover:bg-gray-50">
+                            <td className="py-2 font-medium text-gray-800">{s.name}</td>
+                            <td className="py-2 text-right font-bold text-blue-600">{s.totalLaps}</td>
+                            <td className="py-2 pl-4 text-gray-400 text-xs">{s.classes}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* 資料清除 */}
             <div className="bg-white rounded-xl shadow p-4 border border-red-100">
