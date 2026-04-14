@@ -1419,20 +1419,16 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               <div className="relative flex-1 flex items-center justify-center px-4 sm:px-8">
                 <div className="text-center">
                   <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] mb-4 sm:mb-8">目前進行圈數</div>
-                  <div className="flex items-center justify-center mb-4 sm:mb-8">
+                  <div className="flex items-center justify-center">
                     <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
                           style={{
                             color: skin.displayAccent,
-                            fontSize: 'min(66.67vh, 20rem)',
+                            fontSize: 'min(75vh, 24rem)',
                             textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
                             WebkitTextStroke: '2px rgba(0,0,0,0.3)'
                           }}>
                       {totalLaps}
                     </span>
-                  </div>
-                  <div className="text-white/60 text-2xl sm:text-4xl font-bold drop-shadow-lg"
-                       style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                    圈
                   </div>
                 </div>
               </div>
