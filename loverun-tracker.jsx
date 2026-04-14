@@ -204,6 +204,8 @@ export default function LoveRunTracker() {
   const [displayManualTime, setDisplayManualTime] = useState('')  // 手動時間覆蓋
   const [displayUseManualTime, setDisplayUseManualTime] = useState(false) // 是否使用手動時間
   const [displayDrawerOpen, setDisplayDrawerOpen] = useState(false) // 個人統計滑出面板
+  const [displayLeftOpen, setDisplayLeftOpen] = useState(false)   // 手機版左側跑者面板
+  const [displayRightOpen, setDisplayRightOpen] = useState(false) // 手機版右側順序面板
 
   // 報名流程狀態
   const [signupStep, setSignupStep] = useState('name') // 'name' | 'grid' | 'done'
@@ -1433,8 +1435,21 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               </div>
 
+              {/* ══ 手機版左右面板呼叫按鈕 ══ */}
+              <button
+                onClick={() => setDisplayLeftOpen(true)}
+                className="sm:hidden absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-r-xl bg-black/40 backdrop-blur border border-white/10 border-l-0 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all"
+              ><ChevronRight className="w-4 h-4" /></button>
+              <button
+                onClick={() => setDisplayRightOpen(true)}
+                className="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-l-xl bg-black/40 backdrop-blur border border-white/10 border-r-0 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all rotate-180"
+              ><ChevronRight className="w-4 h-4" /></button>
+
+              {/* ══ 手機版左側遮罩 ══ */}
+              {displayLeftOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayLeftOpen(false)} />}
+
               {/* ══ 跑者選擇（左側） ══ */}
-              <div className="absolute top-1/2 left-4 -translate-y-1/2 z-10 w-[240px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl">
+              <div className={`absolute top-1/2 left-4 -translate-y-1/2 z-40 w-[240px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayLeftOpen ? 'translate-x-0' : '-translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
                 <div className="mb-3">
                   <div className="text-xs uppercase tracking-[0.2em] text-white/50 mb-2">選擇跑者</div>
                   <select
@@ -1509,9 +1524,12 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               </div>
 
+              {/* ══ 手機版右側遮罩 ══ */}
+              {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
+
               {/* ══ 跑者輪播顯示（前後各二人，中間最大） ══ */}
               {sortedStats.length > 0 && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end gap-2 z-10">
+                <div className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end gap-2 z-40 transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
                   {(() => {
                     const currentIndex = sortedStats.findIndex(s => s.name === displayRunner)
                     const startIndex = Math.max(0, currentIndex - 2)
@@ -1565,7 +1583,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               )}
 
-              <div className="absolute bottom-4 right-4 z-10 w-[280px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl">
+              <div className={`absolute bottom-4 right-4 z-40 w-[280px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <div className="text-xs uppercase tracking-[0.2em] text-white/50">跑者順序</div>
