@@ -2,6 +2,9 @@
   "name": "luodong-love-run",
   "version": "1.0.0",
   "description": "羅東愛心路跑圈數記錄系統",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
