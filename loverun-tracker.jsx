@@ -959,10 +959,10 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                   {/* 已有登記可查詢 */}
                   {signups.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-dashed">
-                      <p className="text-xs text-gray-400 mb-2">已有登記？輸入修改碼查詢</p>
+                      <p className="text-xs text-gray-400 mb-2">已有登記，不用輸入姓名，直接輸入修改碼：</p>
                       <input
                         type="text"
-                        placeholder="修改碼（8碼）"
+                        placeholder="修改碼（4碼）"
                         maxLength={8}
                         onKeyDown={e => {
                           if (e.key === 'Enter') {
