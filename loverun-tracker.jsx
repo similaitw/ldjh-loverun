@@ -2123,47 +2123,32 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
 
               {signups.length === 0 ? <p className="text-gray-400 text-sm">尚無登記</p> : (
                 <>
-                  {/* ── 依人名（展開為「人×時段」每列一筆，連續時段合併顯示） ── */}
+                  {/* ── 依人名（每個時段獨立一列，按時段排序） ── */}
                   {adminViewMode === 'person' && (() => {
-                    // 將每個人的時段依連續性切成多段，每段為一列
-                    const slotToIdx = new Map(TIME_SLOTS.map((t, i) => [t, i]))
                     const rows = []
                     signups.forEach(s => {
-                      const sorted = [...s.slots].sort()
-                      let group = []
-                      sorted.forEach(slot => {
-                        if (group.length === 0) { group.push(slot); return }
-                        const prev = group[group.length - 1]
-                        if (slotToIdx.get(slot) === slotToIdx.get(prev) + 1) group.push(slot)
-                        else { rows.push({ s, group }); group = [slot] }
-                      })
-                      if (group.length) rows.push({ s, group })
-                      if (sorted.length === 0) rows.push({ s, group: [] })
+                      if (s.slots.length === 0) { rows.push({ s, slot: null }); return }
+                      [...s.slots].sort().forEach(slot => rows.push({ s, slot }))
                     })
                     rows.sort((a, b) => {
-                      const ea = a.group[0] || '99:99'
-                      const eb = b.group[0] || '99:99'
+                      const ea = a.slot || '99:99'
+                      const eb = b.slot || '99:99'
                       if (ea !== eb) return ea.localeCompare(eb)
                       return a.s.name.localeCompare(b.s.name, 'zh-TW')
                     })
                     return (
                       <div className="divide-y border rounded-lg overflow-hidden">
                         {rows.map((r, idx) => {
-                          const { s, group } = r
-                          const range = group.length === 0
-                            ? '未選擇時段'
-                            : group.length === 1
-                            ? group[0]
-                            : `${group[0]} – ${group[group.length - 1]}（${group.length} 格）`
+                          const { s, slot } = r
                           return (
-                            <div key={`${s.id}-${idx}`} className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-gray-50">
-                              <div className="shrink-0 w-20 sm:w-28 font-mono text-sm text-gray-700 font-semibold">{group[0] || '—'}</div>
+                            <div key={`${s.id}-${slot || 'none'}-${idx}`} className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-gray-50">
+                              <div className="shrink-0 w-16 sm:w-20 font-mono text-sm text-gray-700 font-semibold text-center">{slot || '—'}</div>
                               <button
                                 onClick={() => { setAdminGridToken(s.token); setAdminGridSlots([...s.slots]) }}
                                 className="font-semibold text-blue-600 hover:text-blue-800 hover:underline text-sm"
                               >{s.name}</button>
                               <span className="text-xs text-gray-400 font-mono">{s.token}</span>
-                              <div className="text-xs text-gray-500 flex-1 min-w-0 truncate">{range}</div>
+                              <div className="text-xs text-gray-400 flex-1 min-w-0 truncate">共 {s.slots.length} 個時段</div>
                               <button
                                 onClick={async () => { if (confirm(`確定要刪除「${s.name}」的全部登記？`)) await deleteDoc(doc(db, 'signups', s.token)) }}
                                 className="text-red-400 hover:text-red-600 shrink-0"><Trash2 className="w-4 h-4" /></button>
