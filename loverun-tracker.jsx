@@ -1568,71 +1568,49 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               </div>
 
-              {/* ══ 核心展示：個人圈數（超大） + 上方跑者 + 下方總圈數 ══ */}
-              <div className="relative flex-1 flex items-start justify-center px-4 sm:px-8 pt-2 sm:pt-4">
-                <div className="text-center w-full">
+              {/* ══ 核心展示：跑者 → 目前總圈數文字 → 超大總圈數數字 ══ */}
+              <div className="relative flex-1 flex flex-col items-center px-4 sm:px-8 pt-2 sm:pt-4 min-h-0">
+                {/* 上方：跑者資訊（固定高度） */}
+                <div className="w-full text-center shrink-0">
                   {currentGroup.length > 0 ? (
                     currentGroup.length === 1 ? (
-                      <>
-                        <div className="text-white text-xl sm:text-3xl font-bold mb-1 sm:mb-2">
-                          現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
-                          <span className="ml-2 text-white/80 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
-                        </div>
-                        <div className="flex items-center justify-center">
-                          <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
-                                style={{
-                                  color: skin.displayAccent,
-                                  fontSize: 'min(65vh, 22rem)',
-                                  textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
-                                  WebkitTextStroke: '2px rgba(0,0,0,0.3)'
-                                }}>
-                            {getRunnerLaps(currentGroup[0].name).length}
-                          </span>
-                        </div>
-                      </>
+                      <div className="text-white text-xl sm:text-3xl font-bold">
+                        現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
+                        <span className="ml-2 text-white/80 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
+                      </div>
                     ) : (
-                      <div className="flex flex-col gap-3 sm:gap-5 items-center">
+                      <div className="flex flex-col gap-1 sm:gap-2 items-center">
                         {currentGroup.map(g => {
                           const cnt = getRunnerLaps(g.name).length
                           return (
-                            <div key={g.token || g.name} className="flex items-center justify-center gap-4 sm:gap-8">
-                              <div className="text-white text-lg sm:text-2xl font-bold text-right">
-                                現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
-                                <div className="text-white/70 text-sm sm:text-base">個人第 {cnt} 圈</div>
-                              </div>
-                              <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
-                                    style={{
-                                      color: skin.displayAccent,
-                                      fontSize: 'min(30vh, 10rem)',
-                                      textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
-                                      WebkitTextStroke: '2px rgba(0,0,0,0.3)'
-                                    }}>
-                                {cnt}
-                              </span>
+                            <div key={g.token || g.name} className="text-white text-lg sm:text-2xl font-bold">
+                              現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
+                              <span className="ml-2 text-white/70 text-sm sm:text-base">個人第 {cnt} 圈</span>
                             </div>
                           )
                         })}
                       </div>
                     )
                   ) : (
-                    <>
-                      <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] mb-2 sm:mb-3">請選擇跑者</div>
-                      <div className="flex items-center justify-center">
-                        <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
-                              style={{
-                                color: skin.displayAccent,
-                                fontSize: 'min(65vh, 22rem)',
-                                textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
-                                WebkitTextStroke: '2px rgba(0,0,0,0.3)'
-                              }}>
-                          0
-                        </span>
-                      </div>
-                    </>
+                    <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em]">請選擇跑者</div>
                   )}
-                  <div className="mt-3 sm:mt-5 text-white/70 text-lg sm:text-2xl font-bold">
-                    目前總圈數 <span className="tabular-nums text-white text-2xl sm:text-4xl font-black ml-2">{totalLaps}</span>
-                  </div>
+                </div>
+                {/* 中：目前總圈數標籤 */}
+                <div className="text-white/70 text-lg sm:text-2xl font-bold mt-1 sm:mt-2 shrink-0">
+                  目前總圈數
+                </div>
+                {/* 下：超大總圈數數字（佔滿剩餘空間約 90%） */}
+                <div className="flex-1 w-full flex items-center justify-center min-h-0">
+                  <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
+                        style={{
+                          color: skin.displayAccent,
+                          fontSize: 'clamp(6rem, 72vh, 36rem)',
+                          lineHeight: 0.9,
+                          textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
+                          WebkitTextStroke: '2px rgba(0,0,0,0.3)',
+                        }}>
+                    {totalLaps}
+                  </span>
                 </div>
               </div>
 
@@ -1697,7 +1675,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     <div className="text-xs uppercase tracking-[0.2em] text-white/50">跑者順序</div>
                     <div className="text-sm text-white/80">依登記時段排列</div>
                   </div>
-                  {completedRunners.length > 0 && (
+                  {adminUnlocked && completedRunners.length > 0 && (
                     <button
                       onClick={() => setCompletedRunners([])}
                       className="text-[10px] text-white/60 hover:text-white underline"
@@ -1715,6 +1693,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                         key={key}
                         data-runner-idx={idx}
                         onClick={() => {
+                          if (!adminUnlocked) return
                           if (isCompleted) return
                           const passedKeys = runnerOrder
                             .slice(0, idx)
@@ -1725,15 +1704,13 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                           }
                           if (displayRunner !== s.name) {
                             setDisplayRunner(s.name)
-                            if (adminUnlocked) {
-                              const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
-                              setLapRecords(prev => [...prev, {
-                                id: Date.now(), participant: s.name,
-                                scheduleId: 0, className: '展示記錄',
-                                time, timestamp: Date.now(),
-                              }])
-                              playBeep()
-                            }
+                            const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
+                            setLapRecords(prev => [...prev, {
+                              id: Date.now(), participant: s.name,
+                              scheduleId: 0, className: '展示記錄',
+                              time, timestamp: Date.now(),
+                            }])
+                            playBeep()
                           }
                           setDisplayRightOpen(false)
                           // 捲動：讓「前一位完成者」在第一列，選中的跑者在第二列
@@ -1750,13 +1727,15 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                             }
                           })
                         }}
-                        disabled={isCompleted}
+                        disabled={isCompleted || !adminUnlocked}
                         className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-left transition ${
                           isCompleted
                             ? 'bg-white/5 opacity-50 cursor-not-allowed line-through'
                             : isCurrent
                               ? 'bg-white/20 ring-2 ring-white/40'
-                              : 'bg-white/5 hover:bg-white/15'
+                              : adminUnlocked
+                                ? 'bg-white/5 hover:bg-white/15'
+                                : 'bg-white/5 cursor-default'
                         }`}
                       >
                         <div className="min-w-0 flex-1">
