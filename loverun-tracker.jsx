@@ -215,6 +215,8 @@ export default function LoveRunTracker() {
   const [displayLayout, setDisplayLayout] = useState({}) // { [capsuleId]: {dx,dy} }
   const displayLayoutRef = useRef({})
   useEffect(() => { displayLayoutRef.current = displayLayout }, [displayLayout])
+  // 拖曳編輯模式（開啟才顯示把手）
+  const [dragMode, setDragMode] = useState(false)
 
   // 報名流程狀態
   const [signupStep, setSignupStep] = useState('name') // 'name' | 'grid' | 'done'
@@ -1687,7 +1689,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="relative rounded-2xl px-4 py-2 shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)', transform: displayLayout['elapsed'] ? `translate(${displayLayout['elapsed'].dx}px, ${displayLayout['elapsed'].dy}px)` : undefined }}>
-                      {adminUnlocked && (
+                      {adminUnlocked && dragMode && (
                         <span onPointerDown={e => startCapsuleDrag('elapsed', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
                       )}
                       <div className="text-sm text-gray-700 font-semibold">已進行時間</div>
@@ -1699,7 +1701,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                   {/* 中央：現在跑者膠囊（與左右同高） */}
                   <div className="flex-1 flex justify-center min-w-0">
                     <div className="relative inline-block max-w-full" style={{ transform: displayLayout['current-runner'] ? `translate(${displayLayout['current-runner'].dx}px, ${displayLayout['current-runner'].dy}px)` : undefined }}>
-                      {adminUnlocked && (
+                      {adminUnlocked && dragMode && (
                         <span onPointerDown={e => startCapsuleDrag('current-runner', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
                       )}
                       {currentGroup.length > 0 ? (
@@ -1731,11 +1733,11 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    {isFullscreen && (
-                        <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl hover:bg-white flex items-center justify-center transition-colors shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}><Users className="w-5 h-5 text-gray-800" /></button>
+                    {adminUnlocked && (
+                        <button onClick={() => setDragMode(m => !m)} className="w-10 h-10 rounded-xl hover:bg-white flex items-center justify-center transition-colors shadow-2xl" style={{ background: dragMode ? '#f59e0b' : 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }} title={dragMode ? '關閉拖曳編輯（目前開啟）' : '開啟拖曳編輯'}><GripVertical className={`w-5 h-5 ${dragMode ? 'text-white' : 'text-gray-800'}`} /></button>
                     )}
                     <div className="relative rounded-2xl px-4 py-2 shadow-2xl text-right" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)', transform: displayLayout['current-time'] ? `translate(${displayLayout['current-time'].dx}px, ${displayLayout['current-time'].dy}px)` : undefined }}>
-                      {adminUnlocked && (
+                      {adminUnlocked && dragMode && (
                         <span onPointerDown={e => startCapsuleDrag('current-time', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
                       )}
                       <div className="text-sm text-gray-700 font-semibold">目前時間</div>
@@ -1749,7 +1751,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               <div className="relative flex-1 flex flex-col items-center px-4 sm:px-8 pt-2 sm:pt-4 min-h-0">
                 {/* 中：目前總圈數標籤 */}
                 <div className="relative inline-block" style={{ transform: displayLayout['total-laps-label'] ? `translate(${displayLayout['total-laps-label'].dx}px, ${displayLayout['total-laps-label'].dy}px)` : undefined }}>
-                  {adminUnlocked && (
+                  {adminUnlocked && dragMode && (
                     <span onPointerDown={e => startCapsuleDrag('total-laps-label', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
                   )}
                   <span className="inline-block text-gray-900 text-lg sm:text-2xl font-bold shrink-0 px-5 py-1.5 rounded-2xl shadow-2xl"
@@ -1760,7 +1762,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 {/* 下：超大總圈數數字（佔滿剩餘空間約 90%） */}
                 <div className="flex-1 w-full flex items-center justify-center min-h-0">
                   <div className="relative inline-block" style={{ transform: displayLayout['total-laps-number'] ? `translate(${displayLayout['total-laps-number'].dx}px, ${displayLayout['total-laps-number'].dy}px)` : undefined }}>
-                    {adminUnlocked && (
+                    {adminUnlocked && dragMode && (
                       <span onPointerDown={e => startCapsuleDrag('total-laps-number', e)} className="hidden sm:flex absolute top-2 left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
                     )}
                     <span className="font-black tabular-nums leading-none"
@@ -1797,7 +1799,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               <div className={`absolute bottom-4 right-4 z-40 w-[280px] transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
               {/* 內層：負責管理員 drag offset（加把手） */}
               <div className="relative flex flex-col gap-3" style={{ transform: displayLayout['side-panel'] ? `translate(${displayLayout['side-panel'].dx}px, ${displayLayout['side-panel'].dy}px)` : undefined }}>
-                {adminUnlocked && (
+                {adminUnlocked && dragMode && (
                   <span onPointerDown={e => startCapsuleDrag('side-panel', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-50" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
                 )}
                 {adminUnlocked && (
