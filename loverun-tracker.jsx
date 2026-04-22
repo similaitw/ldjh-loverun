@@ -438,6 +438,77 @@ export default function LoveRunTracker() {
       })
   }
 
+  const getDisplayRunnerGroups = () => {
+    const runnerOrder = getRunnerOrder().map(r => ({
+      ...r,
+      key: r.token || r.name,
+      sortedSlots: r.slots?.length ? [...r.slots].sort() : [],
+    }))
+    const scheduledRunners = runnerOrder.filter(r => r.sortedSlots.length > 0)
+    const unscheduledRunners = runnerOrder.filter(r => r.sortedSlots.length === 0)
+    const runnerByKey = new Map(scheduledRunners.map(r => [r.key, r]))
+    const slotToRunnerKeys = new Map()
+
+    scheduledRunners.forEach(runner => {
+      runner.sortedSlots.forEach(slot => {
+        if (!slotToRunnerKeys.has(slot)) slotToRunnerKeys.set(slot, [])
+        slotToRunnerKeys.get(slot).push(runner.key)
+      })
+    })
+
+    const visited = new Set()
+    const groups = []
+
+    scheduledRunners.forEach(runner => {
+      if (visited.has(runner.key)) return
+      const queue = [runner.key]
+      const memberKeys = new Set()
+      const slotSet = new Set()
+
+      while (queue.length > 0) {
+        const currentKey = queue.shift()
+        if (visited.has(currentKey)) continue
+        visited.add(currentKey)
+        const currentRunner = runnerByKey.get(currentKey)
+        if (!currentRunner) continue
+        memberKeys.add(currentKey)
+        currentRunner.sortedSlots.forEach(slot => {
+          slotSet.add(slot)
+          ;(slotToRunnerKeys.get(slot) || []).forEach(relatedKey => {
+            if (!visited.has(relatedKey)) queue.push(relatedKey)
+          })
+        })
+      }
+
+      const members = runnerOrder.filter(candidate => memberKeys.has(candidate.key))
+      const slots = [...slotSet].sort()
+      groups.push({
+        earliestSlot: slots[0] || '99:99',
+        members,
+        slotLabel: slots.length <= 1 ? (slots[0] || '未指定時段') : `${slots[0]} ~ ${slots[slots.length - 1]}`,
+      })
+    })
+
+    if (unscheduledRunners.length > 0) {
+      groups.push({
+        earliestSlot: '99:99',
+        members: unscheduledRunners,
+        slotLabel: '未指定時段',
+      })
+    }
+
+    return groups
+      .sort((a, b) => {
+        if (a.earliestSlot === b.earliestSlot) {
+          const aName = a.members[0]?.name || ''
+          const bName = b.members[0]?.name || ''
+          return aName.localeCompare(bName, 'zh-TW')
+        }
+        return a.earliestSlot.localeCompare(b.earliestSlot)
+      })
+      .map((group, index) => ({ ...group, rank: index + 1 }))
+  }
+
   // ══════════════════════════════
   // 報名邏輯
   // ══════════════════════════════
@@ -1463,30 +1534,11 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
           const runnerLapCount = runnerLaps.length
           const totalLaps = lapRecords.length
           const sortedStats = [...stats].sort((a, b) => b.totalLaps - a.totalLaps)
-          const runnerOrder = getRunnerOrder()
-          // 為相同 earliestSlot 指派同一名次，並依時段分組
-          const rankMap = new Map()
-          const groupedRunners = []
-          let rankCursor = 0
-          let prevSlot = null
-          runnerOrder.forEach(r => {
-            if (r.earliestSlot !== prevSlot) {
-              rankCursor += 1
-              prevSlot = r.earliestSlot
-              groupedRunners.push({ slot: r.earliestSlot, rank: rankCursor, members: [r] })
-            } else {
-              groupedRunners[groupedRunners.length - 1].members.push(r)
-            }
-            rankMap.set(r.token || r.name, rankCursor)
-          })
+          const groupedRunners = getDisplayRunnerGroups()
           const expectedSlot = displayRunner ? getRunnerExpectedSlot(displayRunner) : null
           const scheduleDelta = displayRunner ? getRunnerScheduleDelta(displayRunner) : null
-          // 目前跑者同組（同 earliestSlot 的所有人）
-          const currentRunnerSlot = displayRunner
-            ? runnerOrder.find(r => r.name === displayRunner)?.earliestSlot
-            : null
-          const currentGroup = currentRunnerSlot
-            ? runnerOrder.filter(r => r.earliestSlot === currentRunnerSlot)
+          const currentGroup = displayRunner
+            ? (groupedRunners.find(group => group.members.some(r => r.name === displayRunner))?.members || [])
             : []
           return (
           <div className="space-y-4">
@@ -1692,12 +1744,11 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
                 <div ref={runnerListRef} className="space-y-2 max-h-60 overflow-y-auto pr-1">
                   {groupedRunners.map((g, gIdx) => {
-                    const slotLabel = g.slot === '99:99' ? '未指定時段' : g.slot
                     const groupCompleted = g.members.every(m => completedRunners.includes(m.token || m.name))
                     const groupIsCurrent = g.members.some(m => m.name === displayRunner)
                     return (
                       <div
-                        key={g.slot + '-' + g.rank}
+                        key={g.slotLabel + '-' + g.rank}
                         data-runner-idx={gIdx}
                         className={`rounded-2xl px-3 py-2 transition ${
                           groupCompleted
@@ -1708,7 +1759,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
-                          <div className="text-[10px] text-white/50">{slotLabel}</div>
+                          <div className="text-[10px] text-white/50">{g.slotLabel}</div>
                           <div className="text-xs font-bold text-white/90">{g.rank}</div>
                         </div>
                         <div className="space-y-1">
