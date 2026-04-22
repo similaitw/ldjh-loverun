@@ -1693,7 +1693,16 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                           if (passedKeys.length > 0) {
                             setCompletedRunners(prev => [...prev, ...passedKeys])
                           }
-                          setDisplayRunner(s.name)
+                          if (displayRunner !== s.name) {
+                            setDisplayRunner(s.name)
+                            const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
+                            setLapRecords(prev => [...prev, {
+                              id: Date.now(), participant: s.name,
+                              scheduleId: 0, className: '展示記錄',
+                              time, timestamp: Date.now(),
+                            }])
+                            playBeep()
+                          }
                           setDisplayRightOpen(false)
                         }}
                         disabled={isCompleted}
