@@ -928,7 +928,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
       {/* 標題列 */}
       <header className="sticky top-0 z-10 shadow-lg"
         style={{ background: skin.header }}>
-        <div className="max-w-3xl mx-auto px-4 pt-3 pb-1 flex items-center justify-between gap-3">
+        <div className="w-[90%] mx-auto px-4 pt-3 pb-1 flex items-center justify-between gap-3">
           <button onClick={() => setActiveTab('signup')} className="text-left hover:opacity-90 transition-opacity flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0 shadow-lg">
               <Activity className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
@@ -958,7 +958,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
             </div>
           </div>
         </div>
-        <div className="max-w-3xl mx-auto px-3 flex gap-1.5 py-2 overflow-x-auto">
+        <div className="w-[90%] mx-auto px-3 flex gap-1.5 py-2 overflow-x-auto">
           {TABS.map((tab, index) => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className={`tooltip flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-300 hover:scale-105 active:scale-95 ${
@@ -974,7 +974,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main className="w-[90%] mx-auto px-3 sm:px-4 py-4 sm:py-6">
 
         {/* ═══════════════════════════════
             報名登記
@@ -1553,10 +1553,10 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               </div>
 
-              {/* ══ 手機版跑者順序面板呼叫按鈕（左側） ══ */}
+              {/* ══ 手機版跑者順序面板呼叫按鈕（右側） ══ */}
               <button
                 onClick={() => setDisplayRightOpen(true)}
-                className="sm:hidden absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-r-xl bg-black/40 backdrop-blur border border-white/10 border-l-0 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all"
+                className="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-l-xl bg-black/40 backdrop-blur border border-white/10 border-r-0 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all rotate-180"
               ><ChevronRight className="w-4 h-4" /></button>
               {/* ══ 手機版遮罩 ══ */}
               {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
@@ -1606,63 +1606,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               {/* ══ 手機版右側遮罩 ══ */}
               {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
 
-              {/* ══ 跑者輪播顯示（前後各二人，中間最大） ══ */}
-              {sortedStats.length > 0 && (
-                <div className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end gap-2 z-40 transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
-                  {(() => {
-                    const currentIndex = sortedStats.findIndex(s => s.name === displayRunner)
-                    const startIndex = Math.max(0, currentIndex - 2)
-                    const endIndex = Math.min(sortedStats.length - 1, currentIndex + 2)
-                    const visibleStats = sortedStats.slice(startIndex, endIndex + 1)
-
-                    return visibleStats.map((s, idx) => {
-                      const actualIndex = startIndex + idx
-                      const isCurrent = s.name === displayRunner
-                      const distance = Math.abs(actualIndex - currentIndex)
-                      const scale = isCurrent ? 1 : Math.max(0.6, 1 - distance * 0.15)
-                      const opacity = isCurrent ? 1 : Math.max(0.4, 1 - distance * 0.2)
-
-                      return (
-                        <button
-                          key={s.name}
-                          onClick={() => setDisplayRunner(s.name)}
-                          className={`rounded-xl p-2 min-w-[140px] text-right transition-all duration-300 hover:scale-105 ${
-                            isCurrent ? 'shadow-2xl' : 'hover:shadow-lg'
-                          }`}
-                          style={{
-                            background: isCurrent ? skin.displayCard : 'rgba(255,255,255,0.1)',
-                            border: isCurrent ? `2px solid ${skin.displayAccent}` : '2px solid transparent',
-                            transform: `scale(${scale})`,
-                            opacity: opacity,
-                          }}
-                        >
-                          <div className={`flex items-center justify-between gap-2 ${isCurrent ? 'flex-row-reverse' : ''}`}>
-                            <div className="flex-1">
-                              <div className={`font-bold truncate ${isCurrent ? 'text-2xl' : 'text-sm'} text-white`}>
-                                {s.name}
-                              </div>
-                              <div className={`font-black ${isCurrent ? 'text-3xl' : 'text-xl'} text-white tabular-nums`}
-                                   style={{ color: isCurrent ? skin.displayAccent : 'rgba(255,255,255,0.8)' }}>
-                                {s.totalLaps}
-                              </div>
-                            </div>
-                            <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-black shrink-0 ${
-                              actualIndex === 0 ? 'bg-yellow-500 text-yellow-900' :
-                              actualIndex === 1 ? 'bg-gray-300 text-gray-700' :
-                              actualIndex === 2 ? 'bg-amber-700 text-amber-100' :
-                              'bg-white/20 text-white'
-                            }`}>
-                              {actualIndex + 1}
-                            </div>
-                          </div>
-                        </button>
-                      )
-                    })
-                  })()}
-                </div>
-              )}
-
-              <div className={`absolute bottom-4 left-4 z-40 w-[280px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : '-translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
+              <div className={`absolute bottom-4 right-4 z-40 w-[280px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <div className="text-xs uppercase tracking-[0.2em] text-white/50">跑者順序</div>
