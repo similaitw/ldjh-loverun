@@ -207,6 +207,7 @@ export default function LoveRunTracker() {
   const [displayLeftOpen, setDisplayLeftOpen] = useState(false)   // 手機版左側跑者面板
   const [displayRightOpen, setDisplayRightOpen] = useState(false) // 手機版右側順序面板
   const [completedRunners, setCompletedRunners] = useState([])    // 已完成的跑者 key（token 或 name）
+  const [displayBgIndex, setDisplayBgIndex] = useState(() => Math.floor(Math.random() * 9) + 1) // 1..9
 
   // 報名流程狀態
   const [signupStep, setSignupStep] = useState('name') // 'name' | 'grid' | 'done'
@@ -308,6 +309,14 @@ export default function LoveRunTracker() {
   useEffect(() => { localStorage.setItem('loverun_skin', skinKey) }, [skinKey])
   useEffect(() => { localStorage.setItem('loverun_clockDisplayMode', clockDisplayMode) }, [clockDisplayMode])
   useEffect(() => { localStorage.setItem('loverun_completedRunners', JSON.stringify(completedRunners)) }, [completedRunners])
+  // 圈數（lapRecords）有變化時，隨機切換一張不同的展示背景
+  useEffect(() => {
+    setDisplayBgIndex(prev => {
+      let next = prev
+      while (next === prev) next = Math.floor(Math.random() * 9) + 1
+      return next
+    })
+  }, [lapRecords.length])
   useEffect(() => {
     if (timerStart) localStorage.setItem('loverun_timerStart', String(timerStart))
     else localStorage.removeItem('loverun_timerStart')
@@ -1590,7 +1599,17 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
             `}</style>
             {/* 主展示區 */}
             <div ref={displayRef} className={`display-force-landscape rounded-2xl text-white overflow-hidden shadow-2xl relative flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-y-auto' : ''}`}
-              style={{ background: skin.displayBg, minHeight: isFullscreen ? '100vh' : '75vh' }}>
+              style={{
+                background: skin.displayBg,
+                backgroundImage: `url("/img/bg (${displayBgIndex}).png")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                minHeight: isFullscreen ? '100vh' : '75vh',
+              }}>
+
+              {/* 背景圖深色遮罩，確保文字可讀 */}
+              <div className="absolute inset-0 pointer-events-none bg-black/40" />
 
               {/* 裝飾性背景圓 */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">

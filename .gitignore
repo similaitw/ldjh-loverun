@@ -24,3 +24,6 @@
 
 # Vercel
 .vercel
+
+# 原始素材（實際提供給 Next.js 的在 public/img/）
+/img/
