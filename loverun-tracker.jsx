@@ -1530,7 +1530,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               </div>
 
               {/* 頂部標題列 */}
-              <div className="relative px-4 sm:px-8 pt-5 pb-3">
+              <div className="relative px-4 sm:px-8 pt-2 pb-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                       <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center shadow-lg"><Activity className="w-7 h-7 sm:w-8 sm:h-8 text-white" /></div>
@@ -1569,12 +1569,12 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               </div>
 
               {/* ══ 核心展示：個人圈數（超大） + 上方跑者 + 下方總圈數 ══ */}
-              <div className="relative flex-1 flex items-center justify-center px-4 sm:px-8">
+              <div className="relative flex-1 flex items-start justify-center px-4 sm:px-8 pt-2 sm:pt-4">
                 <div className="text-center w-full">
                   {currentGroup.length > 0 ? (
                     currentGroup.length === 1 ? (
                       <>
-                        <div className="text-white text-xl sm:text-3xl font-bold mb-3 sm:mb-5">
+                        <div className="text-white text-xl sm:text-3xl font-bold mb-1 sm:mb-2">
                           現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
                           <span className="ml-2 text-white/80 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
                         </div>
@@ -1616,7 +1616,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     )
                   ) : (
                     <>
-                      <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] mb-4 sm:mb-8">請選擇跑者</div>
+                      <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] mb-2 sm:mb-3">請選擇跑者</div>
                       <div className="flex items-center justify-center">
                         <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
                               style={{
