@@ -1535,58 +1535,11 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               </div>
 
-              {/* ══ 手機版左右面板呼叫按鈕 ══ */}
-              <button
-                onClick={() => setDisplayLeftOpen(true)}
-                className="sm:hidden absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-r-xl bg-black/40 backdrop-blur border border-white/10 border-l-0 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all"
-              ><ChevronRight className="w-4 h-4" /></button>
+              {/* ══ 手機版右側面板呼叫按鈕 ══ */}
               <button
                 onClick={() => setDisplayRightOpen(true)}
                 className="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-l-xl bg-black/40 backdrop-blur border border-white/10 border-r-0 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all rotate-180"
               ><ChevronRight className="w-4 h-4" /></button>
-
-              {/* ══ 手機版左側遮罩 ══ */}
-              {displayLeftOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayLeftOpen(false)} />}
-
-              {/* ══ 跑者選擇（左側） ══ */}
-              <div className={`absolute top-1/2 left-4 -translate-y-1/2 z-40 w-[240px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayLeftOpen ? 'translate-x-0' : '-translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
-                <div className="mb-3">
-                  <div className="text-xs uppercase tracking-[0.2em] text-white/50 mb-2">選擇跑者</div>
-                  <select
-                    value={displayRunner}
-                    onChange={e => setDisplayRunner(e.target.value)}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-sm text-white appearance-none focus:outline-none focus:border-white/50 transition-colors"
-                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
-                  >
-                    <option value="" style={{ color: '#333' }}>-- 請選擇跑者 --</option>
-                    {allRunners.map(name => {
-                      const cnt = getRunnerLaps(name).length
-                      return <option key={name} value={name} style={{ color: '#333' }}>{name}{cnt > 0 ? `（${cnt} 圈）` : ''}</option>
-                    })}
-                  </select>
-                </div>
-                {displayRunner && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center"><Users className="w-3 h-3 text-white" /></div>
-                      <div>
-                        <div className="text-sm font-bold">{displayRunner}</div>
-                        <div className="text-[10px] text-white/40">目前跑者</div>
-                      </div>
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black tabular-nums" style={{ color: skin.displayAccent }}>{runnerLapCount}</span>
-                      <span className="text-sm text-white/50 font-bold">圈</span>
-                    </div>
-                    <button
-                      onClick={() => setDisplayRunner('')}
-                      className="w-full mt-2 rounded-xl bg-white/10 hover:bg-red-500/80 border border-white/20 text-sm font-semibold py-2 flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <XCircle className="w-4 h-4" /> 取消跑者
-                    </button>
-                  </div>
-                )}
-              </div>
               <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-8 pb-4">
                 <div className="rounded-2xl p-3 sm:p-4 mx-auto max-w-2xl" style={{ background: skin.displayCard, backdropFilter: 'blur(12px)' }}>
                   {/* 手動對時 + 記圈，一行 */}
