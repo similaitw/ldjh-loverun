@@ -217,6 +217,8 @@ export default function LoveRunTracker() {
   useEffect(() => { displayLayoutRef.current = displayLayout }, [displayLayout])
   // 拖曳編輯模式（開啟才顯示把手）
   const [dragMode, setDragMode] = useState(false)
+  // 展示頁管理控制選單（開始計時、清除圈數）
+  const [controlMenuOpen, setControlMenuOpen] = useState(false)
 
   // 報名流程狀態
   const [signupStep, setSignupStep] = useState('name') // 'name' | 'grid' | 'done'
@@ -1748,6 +1750,27 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
+                    {adminUnlocked && (
+                      <div className="relative">
+                        <button onClick={() => setControlMenuOpen(o => !o)} className="w-10 h-10 rounded-xl hover:bg-white flex items-center justify-center transition-colors shadow-2xl" style={{ background: controlMenuOpen ? '#f59e0b' : 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }} title="管理選單"><Settings className={`w-5 h-5 ${controlMenuOpen ? 'text-white' : 'text-gray-800'}`} /></button>
+                        {controlMenuOpen && (
+                          <div className="absolute top-12 right-0 z-50 w-56 rounded-2xl p-3 shadow-2xl flex flex-col gap-2" style={{ background: 'rgba(255,255,255,0.95)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                            <button
+                              onClick={() => { (timerRunning ? resetTimer : startTimer)(); setControlMenuOpen(false) }}
+                              className={`w-full py-2 rounded-xl text-sm font-bold text-white shadow-lg ${timerRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                            >
+                              {timerRunning ? '重設計時' : '開始計時'}
+                            </button>
+                            <button
+                              onClick={() => { if (confirm('確定清除所有圈數記錄？')) { updateLapRecords([]); setCompletedRunners([]) } setControlMenuOpen(false) }}
+                              className="w-full py-2 rounded-xl text-sm font-bold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                            >
+                              重設圈數
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {adminUnlocked && (
                         <button onClick={() => setDragMode(m => !m)} className="w-10 h-10 rounded-xl hover:bg-white flex items-center justify-center transition-colors shadow-2xl" style={{ background: dragMode ? '#f59e0b' : 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }} title={dragMode ? '關閉拖曳編輯（目前開啟）' : '開啟拖曳編輯'}><GripVertical className={`w-5 h-5 ${dragMode ? 'text-white' : 'text-gray-800'}`} /></button>
                     )}
