@@ -2123,10 +2123,15 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
 
               {signups.length === 0 ? <p className="text-gray-400 text-sm">尚無登記</p> : (
                 <>
-                  {/* ── 依人名 ── */}
+                  {/* ── 依人名（按最早登記時段排序） ── */}
                   {adminViewMode === 'person' && (
                     <div className="space-y-2">
-                      {signups.map(s => (
+                      {[...signups].sort((a, b) => {
+                        const ea = a.slots.length ? [...a.slots].sort()[0] : '99:99'
+                        const eb = b.slots.length ? [...b.slots].sort()[0] : '99:99'
+                        if (ea !== eb) return ea.localeCompare(eb)
+                        return a.name.localeCompare(b.name, 'zh-TW')
+                      }).map(s => (
                         <div key={s.id} className="border rounded-lg p-3 flex items-center justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <button
@@ -2149,56 +2154,42 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     </div>
                   )}
 
-                  {/* ── 依時段（TIME_BLOCKS 軸）── */}
+                  {/* ── 依時段（條列式：每個時段一列，含空時段）── */}
                   {adminViewMode === 'slot' && (
-                    <div className="space-y-1">
-                      {TIME_BLOCKS.map((block) => {
-                        const blockSlots = getSlotsInBlock(block, TIME_SLOTS)
+                    <div className="divide-y border rounded-lg overflow-hidden">
+                      {TIME_SLOTS.map(slot => {
+                        const sgs = signups.filter(s => s.slots.includes(slot))
+                        const count = sgs.length
+                        const rowCls = count === 0
+                          ? 'bg-gray-50'
+                          : count <= 2
+                          ? 'bg-yellow-50'
+                          : count <= 4
+                          ? 'bg-orange-50'
+                          : 'bg-red-50'
+                        const badgeCls = count === 0
+                          ? 'bg-gray-200 text-gray-500'
+                          : count <= 2
+                          ? 'bg-yellow-200 text-yellow-800'
+                          : count <= 4
+                          ? 'bg-orange-200 text-orange-800'
+                          : 'bg-red-200 text-red-800'
                         return (
-                          <div key={block.label + block.start} className="flex items-start gap-1.5 sm:gap-2 px-1.5 sm:px-2 py-1 rounded-xl hover:bg-gray-50">
-                            <div className={`shrink-0 w-14 sm:w-16 rounded-xl border text-center py-1.5 leading-tight ${LABEL_STYLE[block.type]}`}>
-                            {ICON_MAP[block.type] && (() => {
-                              const Icon = ICON_MAP[block.type];
-                              return <div className="flex justify-center mb-0.5"><Icon className={`w-4 h-4 ${skin.iconColor}`} /></div>
-                            })()}
-                              <div className="text-xs sm:text-sm font-bold">{block.label}</div>
-                              <div className="text-[9px] sm:text-[10px] opacity-60 mt-0.5">{block.start}</div>
-                              <div className="text-[9px] sm:text-[10px] opacity-60">–{block.end}</div>
-                            </div>
-                            <div className="flex flex-wrap gap-0.5 sm:gap-1 flex-1">
-                              {blockSlots.map(slot => {
-                                const sgs = signups.filter(s => s.slots.includes(slot))
-                                const count = sgs.length
-                                const cellCls = count === 0
-                                  ? 'bg-green-50 border-green-300 text-green-600'
-                                  : count <= 2
-                                  ? 'bg-yellow-50 border-yellow-300 text-yellow-700'
-                                  : count <= 4
-                                  ? 'bg-orange-50 border-orange-300 text-orange-700'
-                                  : 'bg-red-50 border-red-300 text-red-700'
-                                return (
-                                  <div key={slot} className={`border rounded-lg text-center ${cellCls}`}
-                                    style={{ width: '44px', minHeight: '44px' }}>
-                                    <div className="text-[10px] font-bold leading-none pt-1">{slot}</div>
-                                    {count > 0 ? (
-                                      <div className="text-[9px] font-semibold opacity-60 mt-0.5">{count}人</div>
-                                    ) : (
-                                      <div className="text-[8px] opacity-30 mt-0.5">空</div>
-                                    )}
-                                    {sgs.length > 0 && (
-                                      <div className="mt-0.5 px-0.5 pb-1">
-                                        {sgs.map(s => (
-                                          <button key={s.id}
-                                            onClick={() => { setAdminGridToken(s.token); setAdminGridSlots([...s.slots]) }}
-                                            className="block w-full text-[8px] leading-tight truncate hover:underline font-medium"
-                                            title={`點擊編輯 ${s.name} 的登記`}
-                                          >{s.name}</button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )
-                              })}
+                          <div key={slot} className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 ${rowCls}`}>
+                            <div className="shrink-0 w-14 sm:w-16 font-mono font-bold text-sm text-gray-700 text-center">{slot}</div>
+                            <div className={`shrink-0 text-xs font-semibold rounded-full px-2 py-0.5 ${badgeCls}`}>{count} 人</div>
+                            <div className="flex flex-wrap gap-1 flex-1 min-w-0">
+                              {count === 0 ? (
+                                <span className="text-xs text-gray-400 italic">無人登記</span>
+                              ) : (
+                                sgs.map(s => (
+                                  <button key={s.id}
+                                    onClick={() => { setAdminGridToken(s.token); setAdminGridSlots([...s.slots]) }}
+                                    className="text-xs bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 rounded-full px-2 py-0.5 font-medium"
+                                    title={`點擊編輯 ${s.name} 的登記`}
+                                  >{s.name}</button>
+                                ))
+                              )}
                             </div>
                           </div>
                         )
