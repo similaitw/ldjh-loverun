@@ -784,48 +784,69 @@ export default function LoveRunTracker() {
       const isPageEnd = idx % 2 === 1
       return `
         <section class="notice${isPageEnd ? ' page-end' : ''}">
+          <div class="deco deco-tl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <div class="deco deco-br">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
           <header>
-            <div class="title">${escapeHtml(eventName)} 報名通知單</div>
-            ${dateText ? `<div class="date">活動日期：${escapeHtml(dateText)}</div>` : ''}
+            <div class="badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="title">${escapeHtml(eventName)}</div>
+            <div class="subtitle">報名通知單</div>
+            ${dateText ? `<div class="date"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>${escapeHtml(dateText)}</span></div>` : ''}
           </header>
-          <div class="row">
+          <div class="row name-row">
             <div class="label">姓名</div>
             <div class="name">${escapeHtml(s.name)}</div>
-          </div>
-          <div class="row">
-            <div class="label">修改碼</div>
-            <div class="token">${escapeHtml(s.token)}</div>
           </div>
           <div class="row slots-row">
             <div class="label">登記時段（共 ${slots.length} 個）</div>
             <div class="slots">${slotsHtml}</div>
           </div>
-          <footer class="tips">
-            <div>※ 請於登記時段前至活動現場報到。如需修改請以修改碼至報名頁更新。</div>
+          <footer class="bottom">
+            <div class="token-box">
+              <span class="token-label">修改碼</span>
+              <span class="token">${escapeHtml(s.token)}</span>
+            </div>
+            <div class="tips">※ 請於登記時段前至活動現場報到。如需修改請以修改碼至報名頁更新。</div>
           </footer>
         </section>`
     }).join('')
     const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>${escapeHtml(eventName)} 通知單</title>
 <style>
-  @page { size: A4; margin: 10mm; }
+  @page { size: A4; margin: 8mm; }
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; margin: 0; color: #222; }
-  .notice { padding: 10mm 12mm; border: 2px dashed #bbb; border-radius: 8px; margin-bottom: 6mm; height: 138mm; display: flex; flex-direction: column; overflow: hidden; }
+  .notice { position: relative; padding: 8mm 12mm; border: 2px dashed #93c5fd; border-radius: 10px; margin-bottom: 5mm; height: 140mm; display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(135deg, #fafcff 0%, #f0f9ff 100%); }
   .notice.page-end { page-break-after: always; margin-bottom: 0; }
   .notice:last-child { page-break-after: auto; }
-  header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 4mm; margin-bottom: 5mm; }
-  .title { font-size: 20pt; font-weight: 900; color: #1e40af; letter-spacing: 2px; }
-  .date { font-size: 11pt; color: #555; margin-top: 2mm; }
-  .row { margin-bottom: 4mm; }
-  .label { font-size: 10pt; color: #888; margin-bottom: 1.5mm; }
-  .name { font-size: 22pt; font-weight: 900; color: #111; letter-spacing: 3px; }
-  .token { font-family: ui-monospace, "Courier New", monospace; font-size: 24pt; font-weight: 900; color: #2563eb; letter-spacing: 6px; background: #eff6ff; padding: 3mm 6mm; border: 2px solid #bfdbfe; border-radius: 4mm; display: inline-block; }
+  .deco { position: absolute; color: #dbeafe; pointer-events: none; }
+  .deco svg { width: 100%; height: 100%; }
+  .deco-tl { top: 4mm; left: 4mm; width: 16mm; height: 16mm; transform: rotate(-15deg); color: #fde68a; }
+  .deco-br { bottom: 4mm; right: 4mm; width: 18mm; height: 18mm; color: #fecaca; opacity: 0.6; }
+  header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 3mm; margin-bottom: 4mm; position: relative; z-index: 1; }
+  .badge { width: 10mm; height: 10mm; margin: 0 auto 2mm; color: #fff; background: linear-gradient(135deg, #3b82f6, #6366f1); border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 2mm; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); }
+  .badge svg { width: 100%; height: 100%; }
+  .title { font-size: 18pt; font-weight: 900; color: #1e40af; letter-spacing: 2px; }
+  .subtitle { font-size: 11pt; color: #64748b; margin-top: 1mm; letter-spacing: 4px; }
+  .date { font-size: 20pt; font-weight: 900; color: #dc2626; margin-top: 3mm; display: flex; align-items: center; justify-content: center; gap: 3mm; letter-spacing: 2px; }
+  .date svg { width: 7mm; height: 7mm; }
+  .row { margin-bottom: 4mm; position: relative; z-index: 1; }
+  .label { font-size: 10pt; color: #64748b; margin-bottom: 1.5mm; font-weight: 600; }
+  .name { font-size: 26pt; font-weight: 900; color: #111; letter-spacing: 4px; }
   .slots-row { flex: 1; overflow: hidden; }
   .slots { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 2mm; }
-  .slot { font-family: ui-monospace, "Courier New", monospace; font-size: 11pt; font-weight: 700; background: #2563eb; color: #fff; padding: 1.5mm 3mm; border-radius: 12mm; }
+  .slot { font-family: ui-monospace, "Courier New", monospace; font-size: 11pt; font-weight: 700; background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; padding: 1.5mm 3.5mm; border-radius: 12mm; box-shadow: 0 1px 2px rgba(59, 130, 246, 0.3); }
   .no-slot { color: #aaa; font-size: 11pt; }
-  .tips { margin-top: auto; font-size: 9pt; color: #666; border-top: 1px dashed #ccc; padding-top: 2mm; line-height: 1.6; }
-  @media print { .notice { border: 1px dashed #ccc; } }
+  .bottom { margin-top: auto; position: relative; z-index: 1; }
+  .token-box { display: inline-flex; align-items: center; gap: 2mm; background: #fef3c7; border: 1px dashed #f59e0b; border-radius: 3mm; padding: 1mm 3mm; margin-bottom: 2mm; }
+  .token-label { font-size: 9pt; color: #92400e; font-weight: 600; }
+  .token { font-family: ui-monospace, "Courier New", monospace; font-size: 11pt; font-weight: 900; color: #b45309; letter-spacing: 2px; }
+  .tips { font-size: 9pt; color: #64748b; border-top: 1px dashed #cbd5e1; padding-top: 2mm; line-height: 1.6; }
+  @media print { .notice { border: 1px dashed #93c5fd; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style></head><body>${cards}
 <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
 </body></html>`
