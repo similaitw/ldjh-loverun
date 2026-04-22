@@ -1464,12 +1464,19 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
           const totalLaps = lapRecords.length
           const sortedStats = [...stats].sort((a, b) => b.totalLaps - a.totalLaps)
           const runnerOrder = getRunnerOrder()
-          // 為相同 earliestSlot 指派同一名次
+          // 為相同 earliestSlot 指派同一名次，並依時段分組
           const rankMap = new Map()
+          const groupedRunners = []
           let rankCursor = 0
           let prevSlot = null
           runnerOrder.forEach(r => {
-            if (r.earliestSlot !== prevSlot) { rankCursor += 1; prevSlot = r.earliestSlot }
+            if (r.earliestSlot !== prevSlot) {
+              rankCursor += 1
+              prevSlot = r.earliestSlot
+              groupedRunners.push({ slot: r.earliestSlot, rank: rankCursor, members: [r] })
+            } else {
+              groupedRunners[groupedRunners.length - 1].members.push(r)
+            }
             rankMap.set(r.token || r.name, rankCursor)
           })
           const expectedSlot = displayRunner ? getRunnerExpectedSlot(displayRunner) : null
@@ -1684,76 +1691,94 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                   )}
                 </div>
                 <div ref={runnerListRef} className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                  {runnerOrder.map((s, idx) => {
-                    const key = s.token || s.name
-                    const isCurrent = s.name === displayRunner
-                    const isCompleted = completedRunners.includes(key)
+                  {groupedRunners.map((g, gIdx) => {
+                    const slotLabel = g.slot === '99:99' ? '未指定時段' : g.slot
+                    const groupCompleted = g.members.every(m => completedRunners.includes(m.token || m.name))
+                    const groupIsCurrent = g.members.some(m => m.name === displayRunner)
                     return (
-                      <button
-                        key={key}
-                        data-runner-idx={idx}
-                        onClick={() => {
-                          if (!adminUnlocked) return
-                          if (isCompleted) return
-                          const passedKeys = runnerOrder
-                            .slice(0, idx)
-                            .map(r => r.token || r.name)
-                            .filter(k => !completedRunners.includes(k))
-                          if (passedKeys.length > 0) {
-                            setCompletedRunners(prev => [...prev, ...passedKeys])
-                          }
-                          if (displayRunner !== s.name) {
-                            setDisplayRunner(s.name)
-                            const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
-                            setLapRecords(prev => [...prev, {
-                              id: Date.now(), participant: s.name,
-                              scheduleId: 0, className: '展示記錄',
-                              time, timestamp: Date.now(),
-                            }])
-                            playBeep()
-                          }
-                          setDisplayRightOpen(false)
-                          // 捲動：讓「前一位完成者」在第一列，選中的跑者在第二列
-                          requestAnimationFrame(() => {
-                            const container = runnerListRef.current
-                            if (!container) return
-                            const topIdx = Math.max(0, idx - 1)
-                            const topRow = container.querySelector(`[data-runner-idx="${topIdx}"]`)
-                            if (topRow) {
-                              container.scrollTo({
-                                top: topRow.offsetTop - container.offsetTop,
-                                behavior: 'smooth',
-                              })
-                            }
-                          })
-                        }}
-                        disabled={isCompleted || !adminUnlocked}
-                        className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-left transition ${
-                          isCompleted
-                            ? 'bg-white/5 opacity-50 cursor-not-allowed line-through'
-                            : isCurrent
+                      <div
+                        key={g.slot + '-' + g.rank}
+                        data-runner-idx={gIdx}
+                        className={`rounded-2xl px-3 py-2 transition ${
+                          groupCompleted
+                            ? 'bg-white/5 opacity-50'
+                            : groupIsCurrent
                               ? 'bg-white/20 ring-2 ring-white/40'
-                              : adminUnlocked
-                                ? 'bg-white/5 hover:bg-white/15'
-                                : 'bg-white/5 cursor-default'
+                              : 'bg-white/5'
                         }`}
                       >
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold truncate">{s.name}</div>
-                          <div className="text-[10px] text-white/50">
-                            {isCompleted
-                              ? '已完成'
-                              : s.earliestSlot === '99:99' ? '未指定時段' : s.earliestSlot}
-                          </div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="text-[10px] text-white/50">{slotLabel}</div>
+                          <div className="text-xs font-bold text-white/90">{g.rank}</div>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <div className="text-xs font-bold text-white/90">{rankMap.get(key)}</div>
-                          {isCurrent && !isCompleted && (
-                            <ArrowRight className="w-4 h-4 animate-pulse" style={{ color: skin.displayAccent }} />
-                          )}
-                          {isCompleted && <Check className="w-4 h-4 text-emerald-400" />}
+                        <div className="space-y-1">
+                          {g.members.map(s => {
+                            const key = s.token || s.name
+                            const isCurrent = s.name === displayRunner
+                            const isCompleted = completedRunners.includes(key)
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => {
+                                  if (!adminUnlocked) return
+                                  if (isCompleted) return
+                                  const passedKeys = []
+                                  for (let i = 0; i < gIdx; i++) {
+                                    groupedRunners[i].members.forEach(m => {
+                                      const k = m.token || m.name
+                                      if (!completedRunners.includes(k)) passedKeys.push(k)
+                                    })
+                                  }
+                                  if (passedKeys.length > 0) {
+                                    setCompletedRunners(prev => [...prev, ...passedKeys])
+                                  }
+                                  if (displayRunner !== s.name) {
+                                    setDisplayRunner(s.name)
+                                    const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
+                                    setLapRecords(prev => [...prev, {
+                                      id: Date.now(), participant: s.name,
+                                      scheduleId: 0, className: '展示記錄',
+                                      time, timestamp: Date.now(),
+                                    }])
+                                    playBeep()
+                                  }
+                                  setDisplayRightOpen(false)
+                                  requestAnimationFrame(() => {
+                                    const container = runnerListRef.current
+                                    if (!container) return
+                                    const topIdx = Math.max(0, gIdx - 1)
+                                    const topRow = container.querySelector(`[data-runner-idx="${topIdx}"]`)
+                                    if (topRow) {
+                                      container.scrollTo({
+                                        top: topRow.offsetTop - container.offsetTop,
+                                        behavior: 'smooth',
+                                      })
+                                    }
+                                  })
+                                }}
+                                disabled={isCompleted || !adminUnlocked}
+                                className={`w-full flex items-center justify-between rounded-xl px-2 py-1.5 text-left transition ${
+                                  isCompleted
+                                    ? 'opacity-50 cursor-not-allowed line-through'
+                                    : isCurrent
+                                      ? 'bg-white/25'
+                                      : adminUnlocked
+                                        ? 'bg-white/5 hover:bg-white/15'
+                                        : 'bg-white/5 cursor-default'
+                                }`}
+                              >
+                                <div className="text-sm font-semibold truncate flex-1 min-w-0">{s.name}</div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {isCurrent && !isCompleted && (
+                                    <ArrowRight className="w-4 h-4 animate-pulse" style={{ color: skin.displayAccent }} />
+                                  )}
+                                  {isCompleted && <Check className="w-4 h-4 text-emerald-400" />}
+                                </div>
+                              </button>
+                            )
+                          })}
                         </div>
-                      </button>
+                      </div>
                     )
                   })}
                 </div>
