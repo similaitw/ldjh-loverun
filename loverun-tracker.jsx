@@ -1813,14 +1813,13 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                       <div
                         key={g.slotLabel + '-' + g.rank}
                         data-runner-idx={gIdx}
-                        className={`rounded-2xl px-3 py-2 transition border ${
+                        className={`rounded-2xl px-3 py-2 transition border-2 ${
                           groupCompleted
                             ? 'bg-gray-100 border-gray-200 opacity-60'
                             : groupIsCurrent
-                              ? 'bg-gray-100 border-gray-400 ring-2'
+                              ? 'bg-white border-gray-500'
                               : 'bg-gray-50 border-gray-200'
                         }`}
-                        style={groupIsCurrent && !groupCompleted ? { '--tw-ring-color': skin.displayAccent } : undefined}
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="text-[10px] text-gray-500">{g.slotLabel}</div>
