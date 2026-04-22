@@ -1579,7 +1579,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               </div>
             </div>
 
-            {/* 手機直式時強迫打橫的 CSS */}
+            {/* 手機直式時強迫打橫的 CSS：整個展示容器順時針旋轉 90° */}
             <style>{`
               @media (orientation: portrait) and (max-width: 768px) {
                 .display-force-landscape {
@@ -1598,7 +1598,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               }
             `}</style>
             {/* 主展示區 */}
-            <div ref={displayRef} className={`display-force-landscape rounded-2xl text-white overflow-hidden shadow-2xl relative flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-y-auto' : ''}`}
+            <div ref={displayRef} className={`rounded-2xl text-white overflow-hidden shadow-2xl relative flex flex-col ${isFullscreen ? 'display-force-landscape fixed inset-0 z-50 rounded-none overflow-y-auto' : ''}`}
               style={{
                 background: skin.displayBg,
                 backgroundImage: `url("/img/bg (${displayBgIndex}).png")`,
@@ -1607,9 +1607,6 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 backgroundRepeat: 'no-repeat',
                 minHeight: isFullscreen ? '100vh' : '75vh',
               }}>
-
-              {/* 背景圖深色遮罩，確保文字可讀 */}
-              <div className="absolute inset-0 pointer-events-none bg-black/40" />
 
               {/* 裝飾性背景圓 */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
