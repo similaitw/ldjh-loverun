@@ -776,13 +776,14 @@ export default function LoveRunTracker() {
     const sorted = [...signups].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'))
     const dateText = eventDate || ''
     const escapeHtml = (str) => String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
-    const cards = sorted.map(s => {
+    const cards = sorted.map((s, idx) => {
       const slots = [...s.slots].sort()
       const slotsHtml = slots.length
         ? slots.map(t => `<span class="slot">${escapeHtml(t)}</span>`).join('')
         : '<span class="no-slot">（未選擇時段）</span>'
+      const isPageEnd = idx % 2 === 1
       return `
-        <section class="notice">
+        <section class="notice${isPageEnd ? ' page-end' : ''}">
           <header>
             <div class="title">${escapeHtml(eventName)} 報名通知單</div>
             ${dateText ? `<div class="date">活動日期：${escapeHtml(dateText)}</div>` : ''}
@@ -800,31 +801,31 @@ export default function LoveRunTracker() {
             <div class="slots">${slotsHtml}</div>
           </div>
           <footer class="tips">
-            <div>※ 請於登記時段前至活動現場報到。</div>
-            <div>※ 如需修改時段，請於活動前使用修改碼至報名頁面更新。</div>
+            <div>※ 請於登記時段前至活動現場報到。如需修改請以修改碼至報名頁更新。</div>
           </footer>
         </section>`
     }).join('')
     const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>${escapeHtml(eventName)} 通知單</title>
 <style>
-  @page { size: A4; margin: 15mm; }
+  @page { size: A4; margin: 10mm; }
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; margin: 0; color: #222; }
-  .notice { page-break-after: always; padding: 20mm 15mm; border: 2px dashed #bbb; border-radius: 10px; margin-bottom: 10mm; min-height: 240mm; display: flex; flex-direction: column; }
+  .notice { padding: 10mm 12mm; border: 2px dashed #bbb; border-radius: 8px; margin-bottom: 6mm; height: 138mm; display: flex; flex-direction: column; overflow: hidden; }
+  .notice.page-end { page-break-after: always; margin-bottom: 0; }
   .notice:last-child { page-break-after: auto; }
-  header { text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 10mm; margin-bottom: 10mm; }
-  .title { font-size: 28pt; font-weight: 900; color: #1e40af; letter-spacing: 2px; }
-  .date { font-size: 14pt; color: #555; margin-top: 4mm; }
-  .row { margin-bottom: 8mm; }
-  .label { font-size: 11pt; color: #888; margin-bottom: 2mm; }
-  .name { font-size: 32pt; font-weight: 900; color: #111; letter-spacing: 4px; }
-  .token { font-family: ui-monospace, "Courier New", monospace; font-size: 36pt; font-weight: 900; color: #2563eb; letter-spacing: 8px; background: #eff6ff; padding: 6mm 10mm; border: 2px solid #bfdbfe; border-radius: 6mm; display: inline-block; }
-  .slots-row { flex: 1; }
-  .slots { display: flex; flex-wrap: wrap; gap: 3mm; margin-top: 3mm; }
-  .slot { font-family: ui-monospace, "Courier New", monospace; font-size: 14pt; font-weight: 700; background: #2563eb; color: #fff; padding: 3mm 5mm; border-radius: 20mm; }
-  .no-slot { color: #aaa; font-size: 12pt; }
-  .tips { margin-top: auto; font-size: 10pt; color: #666; border-top: 1px dashed #ccc; padding-top: 5mm; line-height: 1.8; }
-  @media print { .notice { border: none; padding: 0; min-height: auto; } }
+  header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 4mm; margin-bottom: 5mm; }
+  .title { font-size: 20pt; font-weight: 900; color: #1e40af; letter-spacing: 2px; }
+  .date { font-size: 11pt; color: #555; margin-top: 2mm; }
+  .row { margin-bottom: 4mm; }
+  .label { font-size: 10pt; color: #888; margin-bottom: 1.5mm; }
+  .name { font-size: 22pt; font-weight: 900; color: #111; letter-spacing: 3px; }
+  .token { font-family: ui-monospace, "Courier New", monospace; font-size: 24pt; font-weight: 900; color: #2563eb; letter-spacing: 6px; background: #eff6ff; padding: 3mm 6mm; border: 2px solid #bfdbfe; border-radius: 4mm; display: inline-block; }
+  .slots-row { flex: 1; overflow: hidden; }
+  .slots { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 2mm; }
+  .slot { font-family: ui-monospace, "Courier New", monospace; font-size: 11pt; font-weight: 700; background: #2563eb; color: #fff; padding: 1.5mm 3mm; border-radius: 12mm; }
+  .no-slot { color: #aaa; font-size: 11pt; }
+  .tips { margin-top: auto; font-size: 9pt; color: #666; border-top: 1px dashed #ccc; padding-top: 2mm; line-height: 1.6; }
+  @media print { .notice { border: 1px dashed #ccc; } }
 </style></head><body>${cards}
 <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
 </body></html>`
