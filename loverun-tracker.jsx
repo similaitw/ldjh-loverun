@@ -1642,7 +1642,6 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               <div className="relative px-4 sm:px-8 pt-2 pb-1">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 shrink-0">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}><Activity className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: skin.displayAccent }} /></div>
                     <div className="rounded-2xl px-4 py-2 shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                       <div className="text-sm text-gray-700 font-semibold">已進行時間</div>
                       <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent }}>
@@ -1683,25 +1682,9 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     {isFullscreen && (
                         <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl hover:bg-white flex items-center justify-center transition-colors shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}><Users className="w-5 h-5 text-gray-800" /></button>
                     )}
-                    <div className="text-right">
-                      <div className="flex items-center gap-2 mb-1 justify-end">
-                        <div className="text-sm text-gray-700 font-semibold px-2 py-0.5 rounded shadow-lg" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>目前時間</div>
-                        <button
-                          onClick={() => setClockDisplayMode(clockDisplayMode === 'digital' ? 'analog' : 'digital')}
-                          className="w-6 h-6 rounded-lg hover:bg-white flex items-center justify-center text-xs transition-colors shadow-lg"
-                          style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}
-                          title={clockDisplayMode === 'digital' ? '切換到圓形時鐘' : '切換到數字時鐘'}
-                        >
-                            {clockDisplayMode === 'digital' ? <Clock className="w-4 h-4 text-gray-800" /> : <Watch className="w-4 h-4 text-gray-800" />}
-                        </button>
-                      </div>
-                      {clockDisplayMode === 'digital' ? (
-                        <div className="text-2xl sm:text-4xl font-mono font-black tabular-nums text-gray-900 inline-block px-3 py-1 rounded-xl shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>{currentTime}</div>
-                      ) : (
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
-                          <AnalogClock time={currentTime} />
-                        </div>
-                      )}
+                    <div className="rounded-2xl px-4 py-2 shadow-2xl text-right" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                      <div className="text-sm text-gray-700 font-semibold">目前時間</div>
+                      <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent }}>{currentTime}</div>
                     </div>
                   </div>
                 </div>
