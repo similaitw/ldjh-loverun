@@ -1708,21 +1708,22 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               {/* ══ 手機版跑者順序面板呼叫按鈕（右側） ══ */}
               <button
                 onClick={() => setDisplayRightOpen(true)}
-                className="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-l-xl bg-black/40 backdrop-blur border border-white/10 border-r-0 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all rotate-180"
+                className="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-l-xl flex items-center justify-center text-gray-700 hover:text-gray-900 transition-all rotate-180 shadow-lg"
+                style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)', borderRight: 'none' }}
               ><ChevronRight className="w-4 h-4" /></button>
               {/* ══ 手機版遮罩 ══ */}
               {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
               {adminUnlocked && (
                 <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-8 pb-4">
-                  <div className="rounded-2xl p-3 sm:p-4 mx-auto max-w-2xl" style={{ background: skin.displayCard, backdropFilter: 'blur(12px)' }}>
+                  <div className="rounded-2xl p-3 sm:p-4 mx-auto max-w-2xl shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                     {/* 手動對時 + 記圈，一行 */}
                     <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
                       <div className="sm:w-36">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <label className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">手動對時</label>
+                          <label className="text-[10px] text-gray-600 font-semibold uppercase tracking-wider">手動對時</label>
                           <button
                             onClick={() => setDisplayUseManualTime(!displayUseManualTime)}
-                            className={`w-7 h-3 rounded-full transition-colors relative ${displayUseManualTime ? 'bg-green-500' : 'bg-white/20'}`}
+                            className={`w-7 h-3 rounded-full transition-colors relative ${displayUseManualTime ? 'bg-green-500' : 'bg-gray-300'}`}
                           >
                             <span className={`absolute top-[1px] w-2.5 h-2.5 bg-white rounded-full shadow transition-transform ${displayUseManualTime ? 'left-[14px]' : 'left-[1px]'}`}/>
                           </button>
@@ -1732,7 +1733,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                           value={displayManualTime}
                           onChange={e => setDisplayManualTime(e.target.value)}
                           disabled={!displayUseManualTime}
-                          className={`w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-white/50 transition-colors ${!displayUseManualTime ? 'opacity-30' : ''}`}
+                          className={`w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900 font-mono focus:outline-none focus:border-gray-500 transition-colors ${!displayUseManualTime ? 'opacity-40' : ''}`}
                         />
                       </div>
                       <div className="flex gap-2">
@@ -1742,7 +1743,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                           className={`flex-1 py-2 rounded-xl text-base font-black shadow-lg transition-all duration-200 active:scale-95 hover:shadow-xl ${
                             displayRunner
                               ? 'btn-success animate-pulse-gentle'
-                              : 'bg-white/10 text-white/30 cursor-not-allowed'
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                           }`}
                         >
                           <span className="flex items-center justify-center gap-1">
@@ -1760,16 +1761,17 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               {/* ══ 手機版右側遮罩 ══ */}
               {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
 
-              <div className={`absolute bottom-4 right-4 z-40 w-[280px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
+              <div className={`absolute bottom-4 right-4 z-40 w-[280px] rounded-3xl p-4 text-gray-900 shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}
+                   style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-xs uppercase tracking-[0.2em] text-white/50">跑者順序</div>
-                    <div className="text-sm text-white/80">依登記時段排列</div>
+                    <div className="text-xs uppercase tracking-[0.2em] text-gray-600 font-semibold">跑者順序</div>
+                    <div className="text-sm text-gray-800">依登記時段排列</div>
                   </div>
                   {adminUnlocked && completedRunners.length > 0 && (
                     <button
                       onClick={() => setCompletedRunners([])}
-                      className="text-[10px] text-white/60 hover:text-white underline"
+                      className="text-[10px] text-gray-600 hover:text-gray-900 underline"
                       title="清除所有已完成標記"
                     >重置</button>
                   )}
@@ -1782,17 +1784,18 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                       <div
                         key={g.slotLabel + '-' + g.rank}
                         data-runner-idx={gIdx}
-                        className={`rounded-2xl px-3 py-2 transition ${
+                        className={`rounded-2xl px-3 py-2 transition border ${
                           groupCompleted
-                            ? 'bg-white/5 opacity-50'
+                            ? 'bg-gray-100 border-gray-200 opacity-60'
                             : groupIsCurrent
-                              ? 'bg-white/20 ring-2 ring-white/40'
-                              : 'bg-white/5'
+                              ? 'bg-gray-100 border-gray-400 ring-2'
+                              : 'bg-gray-50 border-gray-200'
                         }`}
+                        style={groupIsCurrent && !groupCompleted ? { '--tw-ring-color': skin.displayAccent } : undefined}
                       >
                         <div className="flex items-center justify-between mb-1.5">
-                          <div className="text-[10px] text-white/50">{g.slotLabel}</div>
-                          <div className="text-xs font-bold text-white/90">{g.rank}</div>
+                          <div className="text-[10px] text-gray-500">{g.slotLabel}</div>
+                          <div className="text-xs font-bold text-gray-800">{g.rank}</div>
                         </div>
                         <div className="space-y-1">
                           {g.members.map(s => {
@@ -1850,14 +1853,14 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                                   })
                                 }}
                                 disabled={isCompleted || !adminUnlocked}
-                                className={`w-full flex items-center justify-between rounded-xl px-2 py-1.5 text-left transition ${
+                                className={`w-full flex items-center justify-between rounded-xl px-2 py-1.5 text-left transition text-gray-900 ${
                                   isCompleted
-                                    ? 'opacity-50 cursor-not-allowed line-through'
+                                    ? 'opacity-50 cursor-not-allowed line-through bg-gray-100'
                                     : isCurrent
-                                      ? 'bg-white/25'
+                                      ? 'bg-white'
                                       : adminUnlocked
-                                        ? 'bg-white/5 hover:bg-white/15'
-                                        : 'bg-white/5 cursor-default'
+                                        ? 'bg-white hover:bg-gray-100'
+                                        : 'bg-white cursor-default'
                                 }`}
                               >
                                 <div className="text-sm font-semibold truncate flex-1 min-w-0">{s.name}</div>
@@ -1865,7 +1868,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                                   {isCurrent && !isCompleted && (
                                     <ArrowRight className="w-4 h-4 animate-pulse" style={{ color: skin.displayAccent }} />
                                   )}
-                                  {isCompleted && <Check className="w-4 h-4 text-emerald-400" />}
+                                  {isCompleted && <Check className="w-4 h-4 text-emerald-600" />}
                                 </div>
                               </button>
                             )
@@ -1876,10 +1879,10 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                   })}
                 </div>
                 {displayRunner && expectedSlot && (
-                  <div className="mt-3 rounded-2xl bg-white/10 p-3">
-                    <div className="text-[10px] text-white/50 uppercase tracking-[0.2em] mb-2">預期時間比較</div>
-                    <div className="text-sm text-white">{displayRunner} 預定 {expectedSlot}</div>
-                    <div className="mt-2 text-lg font-bold">
+                  <div className="mt-3 rounded-2xl p-3 bg-gray-50 border border-gray-200">
+                    <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2 font-semibold">預期時間比較</div>
+                    <div className="text-sm text-gray-800">{displayRunner} 預定 {expectedSlot}</div>
+                    <div className="mt-2 text-lg font-bold text-gray-900">
                       {scheduleDelta === null
                         ? '請先開始計時'
                         : scheduleDelta === 0
