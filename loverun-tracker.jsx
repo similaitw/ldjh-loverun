@@ -1464,8 +1464,23 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
           const totalLaps = lapRecords.length
           const sortedStats = [...stats].sort((a, b) => b.totalLaps - a.totalLaps)
           const runnerOrder = getRunnerOrder()
+          // 為相同 earliestSlot 指派同一名次
+          const rankMap = new Map()
+          let rankCursor = 0
+          let prevSlot = null
+          runnerOrder.forEach(r => {
+            if (r.earliestSlot !== prevSlot) { rankCursor += 1; prevSlot = r.earliestSlot }
+            rankMap.set(r.token || r.name, rankCursor)
+          })
           const expectedSlot = displayRunner ? getRunnerExpectedSlot(displayRunner) : null
           const scheduleDelta = displayRunner ? getRunnerScheduleDelta(displayRunner) : null
+          // 目前跑者同組（同 earliestSlot 的所有人）
+          const currentRunnerSlot = displayRunner
+            ? runnerOrder.find(r => r.name === displayRunner)?.earliestSlot
+            : null
+          const currentGroup = currentRunnerSlot
+            ? runnerOrder.filter(r => r.earliestSlot === currentRunnerSlot)
+            : []
           return (
           <div className="space-y-4">
             {/* 操作列 */}
@@ -1555,26 +1570,66 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
 
               {/* ══ 核心展示：個人圈數（超大） + 上方跑者 + 下方總圈數 ══ */}
               <div className="relative flex-1 flex items-center justify-center px-4 sm:px-8">
-                <div className="text-center">
-                  {displayRunner ? (
-                    <div className="text-white text-xl sm:text-3xl font-bold mb-3 sm:mb-5">
-                      現在跑者 - <span style={{ color: skin.displayAccent }}>{displayRunner}</span>
-                      <span className="ml-2 text-white/80 text-base sm:text-2xl">（個人第 {runnerLapCount} 圈）</span>
-                    </div>
+                <div className="text-center w-full">
+                  {currentGroup.length > 0 ? (
+                    currentGroup.length === 1 ? (
+                      <>
+                        <div className="text-white text-xl sm:text-3xl font-bold mb-3 sm:mb-5">
+                          現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
+                          <span className="ml-2 text-white/80 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
+                                style={{
+                                  color: skin.displayAccent,
+                                  fontSize: 'min(65vh, 22rem)',
+                                  textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
+                                  WebkitTextStroke: '2px rgba(0,0,0,0.3)'
+                                }}>
+                            {getRunnerLaps(currentGroup[0].name).length}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-3 sm:gap-5 items-center">
+                        {currentGroup.map(g => {
+                          const cnt = getRunnerLaps(g.name).length
+                          return (
+                            <div key={g.token || g.name} className="flex items-center justify-center gap-4 sm:gap-8">
+                              <div className="text-white text-lg sm:text-2xl font-bold text-right">
+                                現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
+                                <div className="text-white/70 text-sm sm:text-base">個人第 {cnt} 圈</div>
+                              </div>
+                              <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
+                                    style={{
+                                      color: skin.displayAccent,
+                                      fontSize: 'min(30vh, 10rem)',
+                                      textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
+                                      WebkitTextStroke: '2px rgba(0,0,0,0.3)'
+                                    }}>
+                                {cnt}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
                   ) : (
-                    <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] mb-4 sm:mb-8">請選擇跑者</div>
+                    <>
+                      <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] mb-4 sm:mb-8">請選擇跑者</div>
+                      <div className="flex items-center justify-center">
+                        <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
+                              style={{
+                                color: skin.displayAccent,
+                                fontSize: 'min(65vh, 22rem)',
+                                textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
+                                WebkitTextStroke: '2px rgba(0,0,0,0.3)'
+                              }}>
+                          0
+                        </span>
+                      </div>
+                    </>
                   )}
-                  <div className="flex items-center justify-center">
-                    <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
-                          style={{
-                            color: skin.displayAccent,
-                            fontSize: 'min(65vh, 22rem)',
-                            textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
-                            WebkitTextStroke: '2px rgba(0,0,0,0.3)'
-                          }}>
-                      {displayRunner ? runnerLapCount : 0}
-                    </span>
-                  </div>
                   <div className="mt-3 sm:mt-5 text-white/70 text-lg sm:text-2xl font-bold">
                     目前總圈數 <span className="tabular-nums text-white text-2xl sm:text-4xl font-black ml-2">{totalLaps}</span>
                   </div>
@@ -1713,7 +1768,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <div className="text-xs font-bold text-white/90">{idx + 1}</div>
+                          <div className="text-xs font-bold text-white/90">{rankMap.get(key)}</div>
                           {isCurrent && !isCompleted && (
                             <ArrowRight className="w-4 h-4 animate-pulse" style={{ color: skin.displayAccent }} />
                           )}
