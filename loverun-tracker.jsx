@@ -1457,8 +1457,26 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               </div>
             </div>
 
+            {/* 手機直式時強迫打橫的 CSS */}
+            <style>{`
+              @media (orientation: portrait) and (max-width: 768px) {
+                .display-force-landscape {
+                  transform: rotate(90deg);
+                  transform-origin: center center;
+                  width: 100vh !important;
+                  height: 100vw !important;
+                  position: fixed !important;
+                  top: 50% !important;
+                  left: 50% !important;
+                  margin-left: -50vh !important;
+                  margin-top: -50vw !important;
+                  z-index: 60 !important;
+                  border-radius: 0 !important;
+                }
+              }
+            `}</style>
             {/* 主展示區 */}
-            <div ref={displayRef} className={`rounded-2xl text-white overflow-hidden shadow-2xl relative flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-y-auto' : ''}`}
+            <div ref={displayRef} className={`display-force-landscape rounded-2xl text-white overflow-hidden shadow-2xl relative flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-y-auto' : ''}`}
               style={{ background: skin.displayBg, minHeight: isFullscreen ? '100vh' : '75vh' }}>
 
               {/* 裝飾性背景圓 */}
@@ -1535,11 +1553,13 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               </div>
 
-              {/* ══ 手機版右側面板呼叫按鈕 ══ */}
+              {/* ══ 手機版跑者順序面板呼叫按鈕（左側） ══ */}
               <button
                 onClick={() => setDisplayRightOpen(true)}
-                className="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-l-xl bg-black/40 backdrop-blur border border-white/10 border-r-0 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all rotate-180"
+                className="sm:hidden absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-16 rounded-r-xl bg-black/40 backdrop-blur border border-white/10 border-l-0 flex items-center justify-center text-white/60 hover:text-white hover:bg-black/60 transition-all"
               ><ChevronRight className="w-4 h-4" /></button>
+              {/* ══ 手機版遮罩 ══ */}
+              {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
               <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-8 pb-4">
                 <div className="rounded-2xl p-3 sm:p-4 mx-auto max-w-2xl" style={{ background: skin.displayCard, backdropFilter: 'blur(12px)' }}>
                   {/* 手動對時 + 記圈，一行 */}
@@ -1642,7 +1662,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               )}
 
-              <div className={`absolute bottom-4 right-4 z-40 w-[280px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
+              <div className={`absolute bottom-4 left-4 z-40 w-[280px] rounded-3xl bg-black/30 border border-white/10 p-4 backdrop-blur-xl text-white shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : '-translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <div className="text-xs uppercase tracking-[0.2em] text-white/50">跑者順序</div>
