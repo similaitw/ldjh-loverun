@@ -188,6 +188,8 @@ export default function LoveRunTracker() {
   const [participants, setParticipants] = useState([])
   const [schedules, setSchedules] = useState([])
   const [lapRecords, setLapRecords] = useState([])
+  const lapRecordsRef = useRef([])
+  const lapRecordsHydrated = useRef(false) // Firestore 第一次 snapshot 後才允許寫回，避免覆蓋雲端
   // signups: { id, name, token, slots: ['08:00','08:05',...], note, createdAt }
   const [signups, setSignups] = useState([])
   const [eventName, setEventName] = useState('羅東愛心路跑')
@@ -282,11 +284,10 @@ export default function LoveRunTracker() {
     try {
       const p = localStorage.getItem('loverun_participants')
       const sc = localStorage.getItem('loverun_schedules')
-      const lr = localStorage.getItem('loverun_lapRecords')
       const ts = localStorage.getItem('loverun_timerStart')
       if (p) setParticipants(JSON.parse(p))
       if (sc) setSchedules(JSON.parse(sc))
-      if (lr) setLapRecords(JSON.parse(lr))
+      // lapRecords 改由 Firestore onSnapshot 同步，不再從 localStorage 載入
       if (ts) {
         const start = parseInt(ts)
         if (!Number.isNaN(start)) {
@@ -331,6 +332,34 @@ export default function LoveRunTracker() {
       setSignups(data)
     })
     return () => unsub()
+  }, [])
+
+  // ── Firestore 即時監聽：圈數記錄（laps/main.records）──
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'laps', 'main'), (snap) => {
+      lapRecordsHydrated.current = true
+      if (!snap.exists()) return
+      const remote = snap.data().records
+      if (Array.isArray(remote)) {
+        lapRecordsRef.current = remote
+        setLapRecords(remote)
+      }
+    })
+    return () => unsub()
+  }, [])
+
+  // ── lapRecords ref 同步（供 updateLapRecords 讀取最新值）──
+  useEffect(() => { lapRecordsRef.current = lapRecords }, [lapRecords])
+
+  // ── 寫入 Firestore + 本地狀態（樂觀更新）──
+  const updateLapRecords = useCallback((nextOrFn) => {
+    const next = typeof nextOrFn === 'function' ? nextOrFn(lapRecordsRef.current) : nextOrFn
+    lapRecordsRef.current = next
+    setLapRecords(next)
+    if (lapRecordsHydrated.current) {
+      setDoc(doc(db, 'laps', 'main'), { records: next }, { merge: false })
+        .catch(e => console.error('laps sync failed', e))
+    }
   }, [])
 
   // ── Firestore 即時監聽：設定（活動名稱、日期、結束時間） ──
@@ -657,7 +686,7 @@ export default function LoveRunTracker() {
     if (!newName) return
     if (participants.includes(newName) && newName !== editingParticipant) { alert(`「${newName}」已存在！`); return }
     setParticipants(participants.map(p => p === editingParticipant ? newName : p))
-    setLapRecords(lapRecords.map(r => r.participant === editingParticipant ? { ...r, participant: newName } : r))
+    updateLapRecords(lapRecords.map(r => r.participant === editingParticipant ? { ...r, participant: newName } : r))
     setSignups(signups.map(s => s.name === editingParticipant ? { ...s, name: newName } : s))
     setEditingParticipant(null); setEditParticipantName('')
   }
@@ -688,27 +717,27 @@ export default function LoveRunTracker() {
   const recordLap = useCallback(() => {
     if (!currentParticipant || !currentSchedule) return
     const schedule = schedules.find(s => s.id.toString() === currentSchedule)
-    setLapRecords(prev => [...prev, {
+    updateLapRecords(prev => [...prev, {
       id: Date.now(), participant: currentParticipant,
       scheduleId: parseInt(currentSchedule), className: schedule?.class || '',
       time: getCurrentTime(), timestamp: Date.now(),
     }])
     playBeep()
-  }, [currentParticipant, currentSchedule, schedules])
+  }, [currentParticipant, currentSchedule, schedules, updateLapRecords])
 
-  const deleteLapRecord = (id) => setLapRecords(lapRecords.filter(r => r.id !== id))
+  const deleteLapRecord = (id) => updateLapRecords(lapRecords.filter(r => r.id !== id))
 
   // 展示頁記圈（可手動對時）
   const recordDisplayLap = useCallback(() => {
     if (!displayRunner) return
     const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
-    setLapRecords(prev => [...prev, {
+    updateLapRecords(prev => [...prev, {
       id: Date.now(), participant: displayRunner,
       scheduleId: 0, className: '展示記錄',
       time, timestamp: Date.now(),
     }])
     playBeep()
-  }, [displayRunner, displayUseManualTime, displayManualTime])
+  }, [displayRunner, displayUseManualTime, displayManualTime, updateLapRecords])
 
   // 手動調整圈數
   const adjustLapCount = useCallback((adjustment) => {
@@ -729,18 +758,18 @@ export default function LoveRunTracker() {
         time,
         timestamp: Date.now() + i,
       }))
-      setLapRecords(prev => [...prev, ...newLaps])
+      updateLapRecords(prev => [...prev, ...newLaps])
     } else {
       // 減少圈數
       const runnerLaps = getRunnerLaps(displayRunner)
       const lapsToRemove = Math.min(Math.abs(adjustmentNum), runnerLaps.length)
       const sortedLaps = runnerLaps.sort((a, b) => b.timestamp - a.timestamp)
       const idsToRemove = sortedLaps.slice(0, lapsToRemove).map(lap => lap.id)
-      setLapRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)))
+      updateLapRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)))
     }
 
     playBeep()
-  }, [displayRunner, displayUseManualTime, displayManualTime])
+  }, [displayRunner, displayUseManualTime, displayManualTime, updateLapRecords])
 
   const saveLapModification = () => {
     if (!editLapRunner) {
@@ -790,7 +819,7 @@ export default function LoveRunTracker() {
       return
     }
 
-    setLapRecords(updated)
+    updateLapRecords(updated)
     setShowEditLapModal(false)
     setEditLapError('')
     setEditLapAdjustment('')
@@ -1834,7 +1863,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                                         timestamp: nowTs,
                                         groupLapId,
                                       }))
-                                      setLapRecords(prev => [...prev, ...newRecords])
+                                      updateLapRecords(prev => [...prev, ...newRecords])
                                       playBeep()
                                     }
                                   }
@@ -2528,7 +2557,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
             <div className="bg-white rounded-xl shadow p-4 border border-red-100">
               <h2 className="font-bold text-red-600 mb-3">資料管理</h2>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => { if (confirm('確定清除所有圈數記錄？')) setLapRecords([]) }} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm hover:bg-red-100">清除圈數記錄</button>
+                <button onClick={() => { if (confirm('確定清除所有圈數記錄？')) updateLapRecords([]) }} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm hover:bg-red-100">清除圈數記錄</button>
                 <button onClick={async () => {
                   if (!confirm('確定清除所有報名資料？')) return
                   const batch = writeBatch(db)
@@ -2540,7 +2569,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                   const batch = writeBatch(db)
                   signups.forEach(s => batch.delete(doc(db, 'signups', s.token)))
                   await batch.commit()
-                  setParticipants([]); setSchedules([]); setLapRecords([])
+                  setParticipants([]); setSchedules([]); updateLapRecords([])
                 }} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700">全部清除</button>
               </div>
             </div>
