@@ -1742,12 +1742,15 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               ><ChevronRight className="w-4 h-4" /></button>
               {/* ══ 手機版遮罩 ══ */}
               {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
-              {adminUnlocked && (
-                <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-8 pb-4">
-                  <div className="rounded-2xl p-3 sm:p-4 mx-auto max-w-2xl shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
-                    {/* 手動對時 + 記圈，一行 */}
-                    <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
-                      <div className="sm:w-36">
+              {/* ══ 手機版右側遮罩 ══ */}
+              {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
+
+              {/* 右下側欄：記圈膠囊 + 跑者順序膠囊（上下並排、等寬） */}
+              <div className={`absolute bottom-4 right-4 z-40 w-[280px] flex flex-col gap-3 transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
+                {adminUnlocked && (
+                  <div className="rounded-3xl p-3 shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                    <div className="flex flex-col gap-2">
+                      <div>
                         <div className="flex items-center gap-1.5 mb-1">
                           <label className="text-[10px] text-gray-600 font-semibold uppercase tracking-wider">手動對時</label>
                           <button
@@ -1765,32 +1768,26 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                           className={`w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900 font-mono focus:outline-none focus:border-gray-500 transition-colors ${!displayUseManualTime ? 'opacity-40' : ''}`}
                         />
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={recordDisplayLap}
-                          disabled={!displayRunner}
-                          className={`flex-1 py-2 rounded-xl text-base font-black shadow-lg transition-all duration-200 active:scale-95 hover:shadow-xl ${
-                            displayRunner
-                              ? 'btn-success animate-pulse-gentle'
-                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          }`}
-                        >
-                          <span className="flex items-center justify-center gap-1">
-                            <span>+</span>
-                            <span>記圈</span>
-                              {displayRunner && <Sparkles className="w-4 h-4 ml-1" />}
-                          </span>
-                        </button>
-                      </div>
+                      <button
+                        onClick={recordDisplayLap}
+                        disabled={!displayRunner}
+                        className={`w-full py-2 rounded-xl text-base font-black shadow-lg transition-all duration-200 active:scale-95 hover:shadow-xl ${
+                          displayRunner
+                            ? 'btn-success animate-pulse-gentle'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <span className="flex items-center justify-center gap-1">
+                          <span>+</span>
+                          <span>記圈</span>
+                            {displayRunner && <Sparkles className="w-4 h-4 ml-1" />}
+                        </span>
+                      </button>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* ══ 手機版右側遮罩 ══ */}
-              {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
-
-              <div className={`absolute bottom-4 right-4 z-40 w-[280px] rounded-3xl p-4 text-gray-900 shadow-2xl transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}
+              <div className="rounded-3xl p-4 text-gray-900 shadow-2xl"
                    style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
@@ -1921,6 +1918,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     </div>
                   </div>
                 )}
+              </div>
               </div>
             </div>
 
