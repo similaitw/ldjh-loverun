@@ -274,6 +274,7 @@ export default function LoveRunTracker() {
 
   const audioRef = useRef(null)
   const displayRef = useRef(null)
+  const runnerListRef = useRef(null)
 
   // ── 本地資料（localStorage） ──
   useEffect(() => {
@@ -1620,7 +1621,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     >重置</button>
                   )}
                 </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <div ref={runnerListRef} className="space-y-2 max-h-60 overflow-y-auto pr-1">
                   {runnerOrder.map((s, idx) => {
                     const key = s.token || s.name
                     const isCurrent = s.name === displayRunner
@@ -1628,6 +1629,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     return (
                       <button
                         key={key}
+                        data-runner-idx={idx}
                         onClick={() => {
                           if (isCompleted) return
                           const passedKeys = runnerOrder
@@ -1648,6 +1650,19 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                             playBeep()
                           }
                           setDisplayRightOpen(false)
+                          // 捲動：讓「前一位完成者」在第一列，選中的跑者在第二列
+                          requestAnimationFrame(() => {
+                            const container = runnerListRef.current
+                            if (!container) return
+                            const topIdx = Math.max(0, idx - 1)
+                            const topRow = container.querySelector(`[data-runner-idx="${topIdx}"]`)
+                            if (topRow) {
+                              container.scrollTo({
+                                top: topRow.offsetTop - container.offsetTop,
+                                behavior: 'smooth',
+                              })
+                            }
+                          })
                         }}
                         disabled={isCompleted}
                         className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-left transition ${
