@@ -1619,33 +1619,33 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               <div className="relative px-4 sm:px-8 pt-2 pb-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center shadow-lg"><Activity className="w-7 h-7 sm:w-8 sm:h-8 text-white" /></div>
-                    <div className="rounded-2xl px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20">
-                      <div className="text-sm text-white/60 font-medium">已進行時間</div>
-                      <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent }}>
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-black/40 backdrop-blur flex items-center justify-center shadow-lg border border-white/20"><Activity className="w-7 h-7 sm:w-8 sm:h-8 text-white" /></div>
+                    <div className="rounded-2xl px-4 py-2 bg-black/45 backdrop-blur-sm border border-white/25 shadow-lg">
+                      <div className="text-sm text-white font-semibold" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>已進行時間</div>
+                      <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9)' }}>
                         {timerRunning ? elapsedTimeDisplay : '00:00:00'}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     {isFullscreen && (
-                        <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"><Users className="w-5 h-5 text-white" /></button>
+                        <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl bg-black/40 hover:bg-black/60 flex items-center justify-center transition-colors border border-white/20 shadow-lg"><Users className="w-5 h-5 text-white" /></button>
                     )}
                     <div className="text-right">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="text-sm text-white/50">目前時間</div>
+                      <div className="flex items-center gap-2 mb-1 justify-end">
+                        <div className="text-sm text-white font-semibold px-2 py-0.5 rounded bg-black/45 backdrop-blur-sm" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>目前時間</div>
                         <button
                           onClick={() => setClockDisplayMode(clockDisplayMode === 'digital' ? 'analog' : 'digital')}
-                          className="w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs transition-colors"
+                          className="w-6 h-6 rounded-lg bg-black/40 hover:bg-black/60 flex items-center justify-center text-xs transition-colors border border-white/20"
                           title={clockDisplayMode === 'digital' ? '切換到圓形時鐘' : '切換到數字時鐘'}
                         >
                             {clockDisplayMode === 'digital' ? <Clock className="w-4 h-4 text-white" /> : <Watch className="w-4 h-4 text-white" />}
                         </button>
                       </div>
                       {clockDisplayMode === 'digital' ? (
-                        <div className="text-2xl sm:text-4xl font-mono font-black tabular-nums">{currentTime}</div>
+                        <div className="text-2xl sm:text-4xl font-mono font-black tabular-nums text-white inline-block px-3 py-1 rounded-xl bg-black/45 backdrop-blur-sm border border-white/20" style={{ textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9)' }}>{currentTime}</div>
                       ) : (
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center mx-auto">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/45 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center mx-auto shadow-lg">
                           <AnalogClock time={currentTime} />
                         </div>
                       )}
@@ -1660,29 +1660,34 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 <div className="w-full text-center shrink-0">
                   {currentGroup.length > 0 ? (
                     currentGroup.length === 1 ? (
-                      <div className="text-white text-xl sm:text-3xl font-bold">
-                        現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
-                        <span className="ml-2 text-white/80 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
+                      <div className="inline-block text-white text-xl sm:text-3xl font-bold px-4 py-1.5 rounded-2xl bg-black/50 backdrop-blur-sm border border-white/25 shadow-lg"
+                           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>
+                        現在跑者 - <span style={{ color: skin.displayAccent, textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>{currentGroup[0].name}</span>
+                        <span className="ml-2 text-white text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
                       </div>
                     ) : (
                       <div className="flex flex-col gap-1 sm:gap-2 items-center">
                         {currentGroup.map(g => {
                           const cnt = getRunnerLaps(g.name).length
                           return (
-                            <div key={g.token || g.name} className="text-white text-lg sm:text-2xl font-bold">
-                              現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
-                              <span className="ml-2 text-white/70 text-sm sm:text-base">個人第 {cnt} 圈</span>
+                            <div key={g.token || g.name}
+                                 className="inline-block text-white text-lg sm:text-2xl font-bold px-4 py-1 rounded-2xl bg-black/50 backdrop-blur-sm border border-white/25 shadow-lg"
+                                 style={{ textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>
+                              現在跑者 - <span style={{ color: skin.displayAccent, textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>{g.name}</span>
+                              <span className="ml-2 text-white text-sm sm:text-base">個人第 {cnt} 圈</span>
                             </div>
                           )
                         })}
                       </div>
                     )
                   ) : (
-                    <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em]">請選擇跑者</div>
+                    <div className="inline-block text-white/90 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-2xl bg-black/50 backdrop-blur-sm border border-white/25 shadow-lg"
+                         style={{ textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>請選擇跑者</div>
                   )}
                 </div>
                 {/* 中：目前總圈數標籤 */}
-                <div className="text-white/70 text-lg sm:text-2xl font-bold mt-1 sm:mt-2 shrink-0">
+                <div className="inline-block text-white text-lg sm:text-2xl font-bold mt-2 sm:mt-3 shrink-0 px-4 py-1 rounded-2xl bg-black/50 backdrop-blur-sm border border-white/25 shadow-lg"
+                     style={{ textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>
                   目前總圈數
                 </div>
                 {/* 下：超大總圈數數字（佔滿剩餘空間約 90%） */}
@@ -1692,8 +1697,8 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                           color: skin.displayAccent,
                           fontSize: 'clamp(6rem, 72vh, 36rem)',
                           lineHeight: 0.9,
-                          textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
-                          WebkitTextStroke: '2px rgba(0,0,0,0.3)',
+                          textShadow: `0 0 12px rgba(0,0,0,0.95), 0 0 24px rgba(0,0,0,0.85), 0 6px 18px rgba(0,0,0,0.9), 0 0 40px ${skin.displayAccent}40`,
+                          WebkitTextStroke: '3px rgba(0,0,0,0.85)',
                         }}>
                     {totalLaps}
                   </span>
