@@ -2123,36 +2123,56 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
 
               {signups.length === 0 ? <p className="text-gray-400 text-sm">尚無登記</p> : (
                 <>
-                  {/* ── 依人名（按最早登記時段排序） ── */}
-                  {adminViewMode === 'person' && (
-                    <div className="space-y-2">
-                      {[...signups].sort((a, b) => {
-                        const ea = a.slots.length ? [...a.slots].sort()[0] : '99:99'
-                        const eb = b.slots.length ? [...b.slots].sort()[0] : '99:99'
-                        if (ea !== eb) return ea.localeCompare(eb)
-                        return a.name.localeCompare(b.name, 'zh-TW')
-                      }).map(s => (
-                        <div key={s.id} className="border rounded-lg p-3 flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <button
-                              onClick={() => { setAdminGridToken(s.token); setAdminGridSlots([...s.slots]) }}
-                              className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-                            >{s.name}</button>
-                            <span className="text-xs text-gray-400 ml-2 font-mono">{s.token}</span>
-                            <div className="text-xs text-gray-400 ml-1 inline">{s.slots.length} 個時段</div>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {[...s.slots].sort().map(slot => (
-                                <span key={slot} className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded">{slot}</span>
-                              ))}
+                  {/* ── 依人名（展開為「人×時段」每列一筆，連續時段合併顯示） ── */}
+                  {adminViewMode === 'person' && (() => {
+                    // 將每個人的時段依連續性切成多段，每段為一列
+                    const slotToIdx = new Map(TIME_SLOTS.map((t, i) => [t, i]))
+                    const rows = []
+                    signups.forEach(s => {
+                      const sorted = [...s.slots].sort()
+                      let group = []
+                      sorted.forEach(slot => {
+                        if (group.length === 0) { group.push(slot); return }
+                        const prev = group[group.length - 1]
+                        if (slotToIdx.get(slot) === slotToIdx.get(prev) + 1) group.push(slot)
+                        else { rows.push({ s, group }); group = [slot] }
+                      })
+                      if (group.length) rows.push({ s, group })
+                      if (sorted.length === 0) rows.push({ s, group: [] })
+                    })
+                    rows.sort((a, b) => {
+                      const ea = a.group[0] || '99:99'
+                      const eb = b.group[0] || '99:99'
+                      if (ea !== eb) return ea.localeCompare(eb)
+                      return a.s.name.localeCompare(b.s.name, 'zh-TW')
+                    })
+                    return (
+                      <div className="divide-y border rounded-lg overflow-hidden">
+                        {rows.map((r, idx) => {
+                          const { s, group } = r
+                          const range = group.length === 0
+                            ? '未選擇時段'
+                            : group.length === 1
+                            ? group[0]
+                            : `${group[0]} – ${group[group.length - 1]}（${group.length} 格）`
+                          return (
+                            <div key={`${s.id}-${idx}`} className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-gray-50">
+                              <div className="shrink-0 w-20 sm:w-28 font-mono text-sm text-gray-700 font-semibold">{group[0] || '—'}</div>
+                              <button
+                                onClick={() => { setAdminGridToken(s.token); setAdminGridSlots([...s.slots]) }}
+                                className="font-semibold text-blue-600 hover:text-blue-800 hover:underline text-sm"
+                              >{s.name}</button>
+                              <span className="text-xs text-gray-400 font-mono">{s.token}</span>
+                              <div className="text-xs text-gray-500 flex-1 min-w-0 truncate">{range}</div>
+                              <button
+                                onClick={async () => { if (confirm(`確定要刪除「${s.name}」的全部登記？`)) await deleteDoc(doc(db, 'signups', s.token)) }}
+                                className="text-red-400 hover:text-red-600 shrink-0"><Trash2 className="w-4 h-4" /></button>
                             </div>
-                          </div>
-                          <button
-                            onClick={async () => { if (confirm(`確定要刪除「${s.name}」的登記？`)) await deleteDoc(doc(db, 'signups', s.token)) }}
-                          className="text-red-400 hover:text-red-600 shrink-0"><Trash2 className="w-4 h-4" /></button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                          )
+                        })}
+                      </div>
+                    )
+                  })()}
 
                   {/* ── 依時段（條列式：每個時段一列，含空時段）── */}
                   {adminViewMode === 'slot' && (
