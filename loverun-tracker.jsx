@@ -206,6 +206,7 @@ export default function LoveRunTracker() {
   const [displayDrawerOpen, setDisplayDrawerOpen] = useState(false) // 個人統計滑出面板
   const [displayLeftOpen, setDisplayLeftOpen] = useState(false)   // 手機版左側跑者面板
   const [displayRightOpen, setDisplayRightOpen] = useState(false) // 手機版右側順序面板
+  const [completedRunners, setCompletedRunners] = useState([])    // 已完成的跑者 key（token 或 name）
 
   // 報名流程狀態
   const [signupStep, setSignupStep] = useState('name') // 'name' | 'grid' | 'done'
@@ -295,6 +296,8 @@ export default function LoveRunTracker() {
       if (sk && SKINS[sk]) setSkinKey(sk)
       const cdm = localStorage.getItem('loverun_clockDisplayMode')
       if (cdm === 'analog' || cdm === 'digital') setClockDisplayMode(cdm)
+      const cr = localStorage.getItem('loverun_completedRunners')
+      if (cr) setCompletedRunners(JSON.parse(cr))
     } catch (e) {}
   }, [])
 
@@ -303,6 +306,7 @@ export default function LoveRunTracker() {
   useEffect(() => { localStorage.setItem('loverun_lapRecords', JSON.stringify(lapRecords)) }, [lapRecords])
   useEffect(() => { localStorage.setItem('loverun_skin', skinKey) }, [skinKey])
   useEffect(() => { localStorage.setItem('loverun_clockDisplayMode', clockDisplayMode) }, [clockDisplayMode])
+  useEffect(() => { localStorage.setItem('loverun_completedRunners', JSON.stringify(completedRunners)) }, [completedRunners])
   useEffect(() => {
     if (timerStart) localStorage.setItem('loverun_timerStart', String(timerStart))
     else localStorage.removeItem('loverun_timerStart')
@@ -1503,20 +1507,30 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               </div>
 
-              {/* ══ 核心展示：全場總圈數（超大，佔滿版面） ══ */}
+              {/* ══ 核心展示：個人圈數（超大） + 上方跑者 + 下方總圈數 ══ */}
               <div className="relative flex-1 flex items-center justify-center px-4 sm:px-8">
                 <div className="text-center">
-                  <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] mb-4 sm:mb-8">目前進行圈數</div>
+                  {displayRunner ? (
+                    <div className="text-white text-xl sm:text-3xl font-bold mb-3 sm:mb-5">
+                      現在跑者 - <span style={{ color: skin.displayAccent }}>{displayRunner}</span>
+                      <span className="ml-2 text-white/80 text-base sm:text-2xl">（個人第 {runnerLapCount} 圈）</span>
+                    </div>
+                  ) : (
+                    <div className="text-white/40 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] mb-4 sm:mb-8">請選擇跑者</div>
+                  )}
                   <div className="flex items-center justify-center">
                     <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
                           style={{
                             color: skin.displayAccent,
-                            fontSize: 'min(75vh, 24rem)',
+                            fontSize: 'min(65vh, 22rem)',
                             textShadow: `0 0 40px ${skin.displayAccent}40, 0 0 80px ${skin.displayAccent}20`,
                             WebkitTextStroke: '2px rgba(0,0,0,0.3)'
                           }}>
-                      {totalLaps}
+                      {displayRunner ? runnerLapCount : 0}
                     </span>
+                  </div>
+                  <div className="mt-3 sm:mt-5 text-white/70 text-lg sm:text-2xl font-bold">
+                    目前總圈數 <span className="tabular-nums text-white text-2xl sm:text-4xl font-black ml-2">{totalLaps}</span>
                   </div>
                 </div>
               </div>
@@ -1564,6 +1578,12 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                       <span className="text-3xl font-black tabular-nums" style={{ color: skin.displayAccent }}>{runnerLapCount}</span>
                       <span className="text-sm text-white/50 font-bold">圈</span>
                     </div>
+                    <button
+                      onClick={() => setDisplayRunner('')}
+                      className="w-full mt-2 rounded-xl bg-white/10 hover:bg-red-500/80 border border-white/20 text-sm font-semibold py-2 flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <XCircle className="w-4 h-4" /> 取消跑者
+                    </button>
                   </div>
                 )}
               </div>
@@ -1675,18 +1695,61 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     <div className="text-xs uppercase tracking-[0.2em] text-white/50">跑者順序</div>
                     <div className="text-sm text-white/80">依登記時段排列</div>
                   </div>
-                  <span className="text-xs text-green-200 font-bold">順序</span>
+                  {completedRunners.length > 0 && (
+                    <button
+                      onClick={() => setCompletedRunners([])}
+                      className="text-[10px] text-white/60 hover:text-white underline"
+                      title="清除所有已完成標記"
+                    >重置</button>
+                  )}
                 </div>
-                <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-                  {runnerOrder.slice(0, 6).map((s, idx) => (
-                    <div key={s.token || s.name} className={`flex items-center justify-between rounded-2xl px-3 py-2 transition ${s.name === displayRunner ? 'bg-white/15' : 'bg-white/5'}`}>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold truncate">{s.name}</div>
-                        <div className="text-[10px] text-white/50">{s.earliestSlot === '99:99' ? '未指定時段' : s.earliestSlot}</div>
-                      </div>
-                      <div className="text-xs font-bold text-white/90">{idx + 1}</div>
-                    </div>
-                  ))}
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {runnerOrder.map((s, idx) => {
+                    const key = s.token || s.name
+                    const isCurrent = s.name === displayRunner
+                    const isCompleted = completedRunners.includes(key)
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          if (isCompleted) return
+                          const passedKeys = runnerOrder
+                            .slice(0, idx)
+                            .map(r => r.token || r.name)
+                            .filter(k => !completedRunners.includes(k))
+                          if (passedKeys.length > 0) {
+                            setCompletedRunners(prev => [...prev, ...passedKeys])
+                          }
+                          setDisplayRunner(s.name)
+                          setDisplayRightOpen(false)
+                        }}
+                        disabled={isCompleted}
+                        className={`w-full flex items-center justify-between rounded-2xl px-3 py-2 text-left transition ${
+                          isCompleted
+                            ? 'bg-white/5 opacity-50 cursor-not-allowed line-through'
+                            : isCurrent
+                              ? 'bg-white/20 ring-2 ring-white/40'
+                              : 'bg-white/5 hover:bg-white/15'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold truncate">{s.name}</div>
+                          <div className="text-[10px] text-white/50">
+                            {isCompleted
+                              ? '已完成'
+                              : s.earliestSlot === '99:99' ? '未指定時段' : s.earliestSlot}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="text-xs font-bold text-white/90">{idx + 1}</div>
+                          {isCurrent && !isCompleted && (
+                            <ArrowRight className="w-4 h-4 animate-pulse" style={{ color: skin.displayAccent }} />
+                          )}
+                          {isCompleted && <Check className="w-4 h-4 text-emerald-400" />}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
                 {displayRunner && expectedSlot && (
                   <div className="mt-3 rounded-2xl bg-white/10 p-3">
