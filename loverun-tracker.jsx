@@ -1532,7 +1532,18 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
           const allRunners = [...new Set([...participants, ...signups.map(s => s.name), ...lapRecords.map(r => r.participant)])].sort((a, b) => a.localeCompare(b, 'zh-TW'))
           const runnerLaps = displayRunner ? getRunnerLaps(displayRunner).sort((a, b) => a.timestamp - b.timestamp) : []
           const runnerLapCount = runnerLaps.length
-          const totalLaps = lapRecords.length
+          const totalLaps = (() => {
+            const seen = new Set()
+            let count = 0
+            lapRecords.forEach(r => {
+              if (r.groupLapId) {
+                if (seen.has(r.groupLapId)) return
+                seen.add(r.groupLapId)
+              }
+              count += 1
+            })
+            return count
+          })()
           const sortedStats = [...stats].sort((a, b) => b.totalLaps - a.totalLaps)
           const groupedRunners = getDisplayRunnerGroups()
           const expectedSlot = displayRunner ? getRunnerExpectedSlot(displayRunner) : null
@@ -1765,7 +1776,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                         <div className="space-y-1">
                           {g.members.map(s => {
                             const key = s.token || s.name
-                            const isCurrent = s.name === displayRunner
+                            const isCurrent = groupIsCurrent && !completedRunners.includes(key)
                             const isCompleted = completedRunners.includes(key)
                             return (
                               <button
@@ -1789,6 +1800,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                                     if (groupActiveMembers.length > 0) {
                                       const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
                                       const nowTs = Date.now()
+                                      const groupLapId = `glap-${nowTs}`
                                       const newRecords = groupActiveMembers.map((m, idx) => ({
                                         id: nowTs + idx,
                                         participant: m.name,
@@ -1796,6 +1808,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                                         className: '展示記錄',
                                         time,
                                         timestamp: nowTs,
+                                        groupLapId,
                                       }))
                                       setLapRecords(prev => [...prev, ...newRecords])
                                       playBeep()
