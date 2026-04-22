@@ -776,13 +776,27 @@ export default function LoveRunTracker() {
   const recordDisplayLap = useCallback(() => {
     if (!displayRunner) return
     const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
-    updateLapRecords(prev => [...prev, {
-      id: Date.now(), participant: displayRunner,
-      scheduleId: 0, className: '展示記錄',
-      time, timestamp: Date.now(),
-    }])
+    // 若 displayRunner 位於某個組，該組所有未完成成員共同加一圈（共用 groupLapId，總圈數仍只算一）
+    const groups = getDisplayRunnerGroups()
+    const group = groups.find(g => g.members.some(m => m.name === displayRunner))
+    const activeMembers = group
+      ? group.members.filter(m => !completedRunners.includes(m.token || m.name))
+      : [{ name: displayRunner }]
+    if (activeMembers.length === 0) return
+    const nowTs = Date.now()
+    const groupLapId = `glap-${nowTs}`
+    const newRecords = activeMembers.map((m, idx) => ({
+      id: nowTs + idx,
+      participant: m.name,
+      scheduleId: 0,
+      className: '展示記錄',
+      time,
+      timestamp: nowTs,
+      groupLapId,
+    }))
+    updateLapRecords(prev => [...prev, ...newRecords])
     playBeep()
-  }, [displayRunner, displayUseManualTime, displayManualTime, updateLapRecords])
+  }, [displayRunner, displayUseManualTime, displayManualTime, updateLapRecords, completedRunners])
 
   // 手動調整圈數
   const adjustLapCount = useCallback((adjustment) => {
@@ -1899,25 +1913,23 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                                   if (passedKeys.length > 0) {
                                     setCompletedRunners(prev => [...prev, ...passedKeys])
                                   }
-                                  if (displayRunner !== s.name) {
-                                    setDisplayRunner(s.name)
-                                    const groupActiveMembers = g.members.filter(m => !completedRunners.includes(m.token || m.name))
-                                    if (groupActiveMembers.length > 0) {
-                                      const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
-                                      const nowTs = Date.now()
-                                      const groupLapId = `glap-${nowTs}`
-                                      const newRecords = groupActiveMembers.map((m, idx) => ({
-                                        id: nowTs + idx,
-                                        participant: m.name,
-                                        scheduleId: 0,
-                                        className: '展示記錄',
-                                        time,
-                                        timestamp: nowTs,
-                                        groupLapId,
-                                      }))
-                                      updateLapRecords(prev => [...prev, ...newRecords])
-                                      playBeep()
-                                    }
+                                  setDisplayRunner(s.name)
+                                  const groupActiveMembers = g.members.filter(m => !completedRunners.includes(m.token || m.name))
+                                  if (groupActiveMembers.length > 0) {
+                                    const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
+                                    const nowTs = Date.now()
+                                    const groupLapId = `glap-${nowTs}`
+                                    const newRecords = groupActiveMembers.map((m, idx) => ({
+                                      id: nowTs + idx,
+                                      participant: m.name,
+                                      scheduleId: 0,
+                                      className: '展示記錄',
+                                      time,
+                                      timestamp: nowTs,
+                                      groupLapId,
+                                    }))
+                                    updateLapRecords(prev => [...prev, ...newRecords])
+                                    playBeep()
                                   }
                                   setDisplayRightOpen(false)
                                   requestAnimationFrame(() => {
