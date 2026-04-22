@@ -1785,13 +1785,21 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                                   }
                                   if (displayRunner !== s.name) {
                                     setDisplayRunner(s.name)
-                                    const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
-                                    setLapRecords(prev => [...prev, {
-                                      id: Date.now(), participant: s.name,
-                                      scheduleId: 0, className: '展示記錄',
-                                      time, timestamp: Date.now(),
-                                    }])
-                                    playBeep()
+                                    const groupActiveMembers = g.members.filter(m => !completedRunners.includes(m.token || m.name))
+                                    if (groupActiveMembers.length > 0) {
+                                      const time = displayUseManualTime && displayManualTime ? displayManualTime + ':00' : getCurrentTime()
+                                      const nowTs = Date.now()
+                                      const newRecords = groupActiveMembers.map((m, idx) => ({
+                                        id: nowTs + idx,
+                                        participant: m.name,
+                                        scheduleId: 0,
+                                        className: '展示記錄',
+                                        time,
+                                        timestamp: nowTs,
+                                      }))
+                                      setLapRecords(prev => [...prev, ...newRecords])
+                                      playBeep()
+                                    }
                                   }
                                   setDisplayRightOpen(false)
                                   requestAnimationFrame(() => {
