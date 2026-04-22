@@ -1608,44 +1608,39 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 minHeight: isFullscreen ? '100vh' : '75vh',
               }}>
 
-              {/* 裝飾性背景圓 */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-10" style={{ background: skin.displayAccent }}/>
-                <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-[0.07]" style={{ background: skin.displayAccent }}/>
-                <div className="absolute top-1/2 right-1/4 w-48 h-48 rounded-full opacity-[0.05]" style={{ background: skin.displayAccent }}/>
-              </div>
 
               {/* 頂部標題列 */}
               <div className="relative px-4 sm:px-8 pt-2 pb-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-black/40 backdrop-blur flex items-center justify-center shadow-lg border border-white/20"><Activity className="w-7 h-7 sm:w-8 sm:h-8 text-white" /></div>
-                    <div className="rounded-2xl px-4 py-2 bg-black/45 backdrop-blur-sm border border-white/25 shadow-lg">
-                      <div className="text-sm text-white font-semibold" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>已進行時間</div>
-                      <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9)' }}>
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}><Activity className="w-7 h-7 sm:w-8 sm:h-8 text-white" /></div>
+                    <div className="rounded-2xl px-4 py-2 shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
+                      <div className="text-sm text-white font-semibold">已進行時間</div>
+                      <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent }}>
                         {timerRunning ? elapsedTimeDisplay : '00:00:00'}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     {isFullscreen && (
-                        <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl bg-black/40 hover:bg-black/60 flex items-center justify-center transition-colors border border-white/20 shadow-lg"><Users className="w-5 h-5 text-white" /></button>
+                        <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl hover:bg-black/90 flex items-center justify-center transition-colors shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}><Users className="w-5 h-5 text-white" /></button>
                     )}
                     <div className="text-right">
                       <div className="flex items-center gap-2 mb-1 justify-end">
-                        <div className="text-sm text-white font-semibold px-2 py-0.5 rounded bg-black/45 backdrop-blur-sm" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>目前時間</div>
+                        <div className="text-sm text-white font-semibold px-2 py-0.5 rounded shadow-lg" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>目前時間</div>
                         <button
                           onClick={() => setClockDisplayMode(clockDisplayMode === 'digital' ? 'analog' : 'digital')}
-                          className="w-6 h-6 rounded-lg bg-black/40 hover:bg-black/60 flex items-center justify-center text-xs transition-colors border border-white/20"
+                          className="w-6 h-6 rounded-lg hover:bg-black/90 flex items-center justify-center text-xs transition-colors shadow-lg"
+                          style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}
                           title={clockDisplayMode === 'digital' ? '切換到圓形時鐘' : '切換到數字時鐘'}
                         >
                             {clockDisplayMode === 'digital' ? <Clock className="w-4 h-4 text-white" /> : <Watch className="w-4 h-4 text-white" />}
                         </button>
                       </div>
                       {clockDisplayMode === 'digital' ? (
-                        <div className="text-2xl sm:text-4xl font-mono font-black tabular-nums text-white inline-block px-3 py-1 rounded-xl bg-black/45 backdrop-blur-sm border border-white/20" style={{ textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9)' }}>{currentTime}</div>
+                        <div className="text-2xl sm:text-4xl font-mono font-black tabular-nums text-white inline-block px-3 py-1 rounded-xl shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>{currentTime}</div>
                       ) : (
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/45 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center mx-auto shadow-lg">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
                           <AnalogClock time={currentTime} />
                         </div>
                       )}
@@ -1660,45 +1655,50 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 <div className="w-full text-center shrink-0">
                   {currentGroup.length > 0 ? (
                     currentGroup.length === 1 ? (
-                      <div className="inline-block text-white text-xl sm:text-3xl font-bold px-4 py-1.5 rounded-2xl bg-black/50 backdrop-blur-sm border border-white/25 shadow-lg"
-                           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>
-                        現在跑者 - <span style={{ color: skin.displayAccent, textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>{currentGroup[0].name}</span>
+                      <span className="inline-block text-white text-xl sm:text-3xl font-bold px-5 py-2 rounded-2xl shadow-2xl"
+                           style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
+                        現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
                         <span className="ml-2 text-white text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
-                      </div>
+                      </span>
                     ) : (
                       <div className="flex flex-col gap-1 sm:gap-2 items-center">
                         {currentGroup.map(g => {
                           const cnt = getRunnerLaps(g.name).length
                           return (
-                            <div key={g.token || g.name}
-                                 className="inline-block text-white text-lg sm:text-2xl font-bold px-4 py-1 rounded-2xl bg-black/50 backdrop-blur-sm border border-white/25 shadow-lg"
-                                 style={{ textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>
-                              現在跑者 - <span style={{ color: skin.displayAccent, textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>{g.name}</span>
+                            <span key={g.token || g.name}
+                                 className="inline-block text-white text-lg sm:text-2xl font-bold px-5 py-1.5 rounded-2xl shadow-2xl"
+                                 style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
+                              現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
                               <span className="ml-2 text-white text-sm sm:text-base">個人第 {cnt} 圈</span>
-                            </div>
+                            </span>
                           )
                         })}
                       </div>
                     )
                   ) : (
-                    <div className="inline-block text-white/90 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-2xl bg-black/50 backdrop-blur-sm border border-white/25 shadow-lg"
-                         style={{ textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>請選擇跑者</div>
+                    <span className="inline-block text-white text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] px-5 py-2 rounded-2xl shadow-2xl"
+                         style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>請選擇跑者</span>
                   )}
                 </div>
                 {/* 中：目前總圈數標籤 */}
-                <div className="inline-block text-white text-lg sm:text-2xl font-bold mt-2 sm:mt-3 shrink-0 px-4 py-1 rounded-2xl bg-black/50 backdrop-blur-sm border border-white/25 shadow-lg"
-                     style={{ textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.95)' }}>
+                <span className="inline-block text-white text-lg sm:text-2xl font-bold mt-2 sm:mt-3 shrink-0 px-5 py-1.5 rounded-2xl shadow-2xl"
+                     style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
                   目前總圈數
-                </div>
+                </span>
                 {/* 下：超大總圈數數字（佔滿剩餘空間約 90%） */}
                 <div className="flex-1 w-full flex items-center justify-center min-h-0">
-                  <span className="font-black tabular-nums leading-none text-white drop-shadow-2xl"
+                  <span className="font-black tabular-nums leading-none"
                         style={{
                           color: skin.displayAccent,
                           fontSize: 'clamp(6rem, 72vh, 36rem)',
                           lineHeight: 0.9,
-                          textShadow: `0 0 12px rgba(0,0,0,0.95), 0 0 24px rgba(0,0,0,0.85), 0 6px 18px rgba(0,0,0,0.9), 0 0 40px ${skin.displayAccent}40`,
-                          WebkitTextStroke: '3px rgba(0,0,0,0.85)',
+                          // 多層黑影模擬粗描邊（比 WebkitTextStroke 更穩定）
+                          textShadow: [
+                            '-4px -4px 0 #000', '4px -4px 0 #000', '-4px 4px 0 #000', '4px 4px 0 #000',
+                            '-4px 0 0 #000', '4px 0 0 #000', '0 -4px 0 #000', '0 4px 0 #000',
+                            '0 8px 24px rgba(0,0,0,0.9)',
+                            `0 0 40px ${skin.displayAccent}60`,
+                          ].join(', '),
                         }}>
                     {totalLaps}
                   </span>
