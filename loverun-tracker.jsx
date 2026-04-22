@@ -1611,8 +1611,8 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
 
               {/* 頂部標題列 */}
               <div className="relative px-4 sm:px-8 pt-2 pb-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                       <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}><Activity className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: skin.displayAccent }} /></div>
                     <div className="rounded-2xl px-4 py-2 shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                       <div className="text-sm text-gray-700 font-semibold">已進行時間</div>
@@ -1621,7 +1621,36 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  {/* 中央：現在跑者膠囊（與左右同高） */}
+                  <div className="flex-1 flex justify-center min-w-0">
+                    {currentGroup.length > 0 ? (
+                      currentGroup.length === 1 ? (
+                        <span className="inline-block text-gray-900 text-xl sm:text-3xl font-bold px-5 py-2 rounded-2xl shadow-2xl truncate max-w-full"
+                              style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                          現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
+                          <span className="ml-2 text-gray-700 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
+                        </span>
+                      ) : (
+                        <div className="flex flex-col gap-1 items-center">
+                          {currentGroup.map(g => {
+                            const cnt = getRunnerLaps(g.name).length
+                            return (
+                              <span key={g.token || g.name}
+                                    className="inline-block text-gray-900 text-base sm:text-xl font-bold px-4 py-1 rounded-2xl shadow-2xl"
+                                    style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                                現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
+                                <span className="ml-2 text-gray-700 text-sm sm:text-base">個人第 {cnt} 圈</span>
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )
+                    ) : (
+                      <span className="inline-block text-gray-800 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] px-5 py-2 rounded-2xl shadow-2xl"
+                            style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>請選擇跑者</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
                     {isFullscreen && (
                         <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl hover:bg-white flex items-center justify-center transition-colors shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}><Users className="w-5 h-5 text-gray-800" /></button>
                     )}
@@ -1649,39 +1678,10 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 </div>
               </div>
 
-              {/* ══ 核心展示：跑者 → 目前總圈數文字 → 超大總圈數數字 ══ */}
+              {/* ══ 核心展示：目前總圈數文字 → 超大總圈數數字 ══ */}
               <div className="relative flex-1 flex flex-col items-center px-4 sm:px-8 pt-2 sm:pt-4 min-h-0">
-                {/* 上方：跑者資訊（固定高度） */}
-                <div className="w-full text-center shrink-0">
-                  {currentGroup.length > 0 ? (
-                    currentGroup.length === 1 ? (
-                      <span className="inline-block text-gray-900 text-xl sm:text-3xl font-bold px-5 py-2 rounded-2xl shadow-2xl"
-                           style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
-                        現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
-                        <span className="ml-2 text-gray-700 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
-                      </span>
-                    ) : (
-                      <div className="flex flex-col gap-1 sm:gap-2 items-center">
-                        {currentGroup.map(g => {
-                          const cnt = getRunnerLaps(g.name).length
-                          return (
-                            <span key={g.token || g.name}
-                                 className="inline-block text-gray-900 text-lg sm:text-2xl font-bold px-5 py-1.5 rounded-2xl shadow-2xl"
-                                 style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
-                              現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
-                              <span className="ml-2 text-gray-700 text-sm sm:text-base">個人第 {cnt} 圈</span>
-                            </span>
-                          )
-                        })}
-                      </div>
-                    )
-                  ) : (
-                    <span className="inline-block text-gray-800 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] px-5 py-2 rounded-2xl shadow-2xl"
-                         style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>請選擇跑者</span>
-                  )}
-                </div>
                 {/* 中：目前總圈數標籤 */}
-                <span className="inline-block text-gray-900 text-lg sm:text-2xl font-bold mt-2 sm:mt-3 shrink-0 px-5 py-1.5 rounded-2xl shadow-2xl"
+                <span className="inline-block text-gray-900 text-lg sm:text-2xl font-bold shrink-0 px-5 py-1.5 rounded-2xl shadow-2xl"
                      style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                   目前總圈數
                 </span>
