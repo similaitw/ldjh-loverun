@@ -8,7 +8,8 @@ import {
   Activity, Palette, ClipboardList, Monitor, Settings, Users, CalendarCheck, Sparkles,
   ClipboardSignature, Lightbulb, PartyPopper, Pencil, KeyRound, Copy, BarChart3,
   FileDown, Clapperboard, Play, Camera, Coffee, Utensils, Moon, Clock, Watch,
-  Lock, Unlock, Check, XCircle, Trash2, AlertTriangle, ChevronRight, ArrowRight, X
+  Lock, Unlock, Check, XCircle, Trash2, AlertTriangle, ChevronRight, ArrowRight, X,
+  GripVertical, RotateCcw
 } from 'lucide-react'
 
 // 依結束時間產生時段列表（08:00 起，每5分鐘）
@@ -210,6 +211,10 @@ export default function LoveRunTracker() {
   const [displayRightOpen, setDisplayRightOpen] = useState(false) // 手機版右側順序面板
   const [completedRunners, setCompletedRunners] = useState([])    // 已完成的跑者 key（token 或 name）
   const [displayBgIndex, setDisplayBgIndex] = useState(() => Math.floor(Math.random() * 9) + 1) // 1..9
+  // 展示頁膠囊拖曳位置偏移（管理員可拖動，各膠囊獨立存 offset）
+  const [displayLayout, setDisplayLayout] = useState({}) // { [capsuleId]: {dx,dy} }
+  const displayLayoutRef = useRef({})
+  useEffect(() => { displayLayoutRef.current = displayLayout }, [displayLayout])
 
   // 報名流程狀態
   const [signupStep, setSignupStep] = useState('name') // 'name' | 'grid' | 'done'
@@ -301,6 +306,8 @@ export default function LoveRunTracker() {
       if (cdm === 'analog' || cdm === 'digital') setClockDisplayMode(cdm)
       const cr = localStorage.getItem('loverun_completedRunners')
       if (cr) setCompletedRunners(JSON.parse(cr))
+      const dl = localStorage.getItem('loverun_displayLayout')
+      if (dl) setDisplayLayout(JSON.parse(dl))
     } catch (e) {}
   }, [])
 
@@ -310,6 +317,7 @@ export default function LoveRunTracker() {
   useEffect(() => { localStorage.setItem('loverun_skin', skinKey) }, [skinKey])
   useEffect(() => { localStorage.setItem('loverun_clockDisplayMode', clockDisplayMode) }, [clockDisplayMode])
   useEffect(() => { localStorage.setItem('loverun_completedRunners', JSON.stringify(completedRunners)) }, [completedRunners])
+  useEffect(() => { localStorage.setItem('loverun_displayLayout', JSON.stringify(displayLayout)) }, [displayLayout])
   // 圈數（lapRecords）有變化時，隨機切換一張不同的展示背景
   useEffect(() => {
     setDisplayBgIndex(prev => {
@@ -361,6 +369,41 @@ export default function LoveRunTracker() {
         .catch(e => console.error('laps sync failed', e))
     }
   }, [])
+
+  // ── 膠囊拖曳把手：管理員模式下可按住把手移動膠囊（桌機 only，≥ sm:640px）──
+  const startCapsuleDrag = useCallback((capsuleId, e) => {
+    if (!adminUnlocked) return
+    if (typeof window !== 'undefined' && window.innerWidth < 640) return // 手機不啟用
+    e.preventDefault()
+    e.stopPropagation()
+    const startX = e.clientX
+    const startY = e.clientY
+    const initial = displayLayoutRef.current[capsuleId] || { dx: 0, dy: 0 }
+    const initDx = initial.dx
+    const initDy = initial.dy
+    const onMove = (ev) => {
+      const dx = initDx + (ev.clientX - startX)
+      const dy = initDy + (ev.clientY - startY)
+      setDisplayLayout(prev => ({ ...prev, [capsuleId]: { dx, dy } }))
+    }
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+  }, [adminUnlocked])
+
+  const resetDisplayLayout = useCallback(() => { setDisplayLayout({}) }, [])
+
+  // 產生膠囊拖曳需要的 props（style transform + 把手顯示）
+  const getCapsuleDragProps = useCallback((capsuleId) => {
+    const offset = displayLayout[capsuleId]
+    const transform = offset ? `translate(${offset.dx}px, ${offset.dy}px)` : undefined
+    return { transform, draggable: adminUnlocked, capsuleId }
+  }, [displayLayout, adminUnlocked])
 
   // ── Firestore 即時監聽：設定（活動名稱、日期、結束時間） ──
   useEffect(() => {
@@ -1600,6 +1643,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                       <button onClick={() => setDisplayDrawerOpen(true)} className="bg-violet-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-violet-700 font-semibold shadow flex items-center gap-1.5"><Users className="w-4 h-4" /> 個人統計</button>
                       <button onClick={() => { setEditLapRunner(displayRunner || allRunners[0] || ''); setShowEditLapModal(true) }} className="bg-yellow-500 text-white px-4 py-2 rounded-xl text-sm hover:bg-yellow-600 font-semibold shadow flex items-center gap-1.5"><Settings className="w-4 h-4" /> 手動修改</button>
                       <button onClick={exportDisplayLaps} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-semibold shadow flex items-center gap-1.5"><FileDown className="w-4 h-4" /> 匯出</button>
+                      <button onClick={resetDisplayLayout} className="bg-gray-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-gray-700 font-semibold shadow flex items-center gap-1.5" title="把所有膠囊回到預設位置"><RotateCcw className="w-4 h-4" /> 重置佈局</button>
                     </>
                   )}
                   <button onClick={toggleFullscreen} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 font-semibold shadow flex items-center gap-1.5">
@@ -1642,7 +1686,10 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               <div className="relative px-4 sm:px-8 pt-2 pb-1">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 shrink-0">
-                    <div className="rounded-2xl px-4 py-2 shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                    <div className="relative rounded-2xl px-4 py-2 shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)', transform: displayLayout['elapsed'] ? `translate(${displayLayout['elapsed'].dx}px, ${displayLayout['elapsed'].dy}px)` : undefined }}>
+                      {adminUnlocked && (
+                        <span onPointerDown={e => startCapsuleDrag('elapsed', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
+                      )}
                       <div className="text-sm text-gray-700 font-semibold">已進行時間</div>
                       <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent }}>
                         {timerRunning ? elapsedTimeDisplay : '00:00:00'}
@@ -1651,38 +1698,46 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                   </div>
                   {/* 中央：現在跑者膠囊（與左右同高） */}
                   <div className="flex-1 flex justify-center min-w-0">
-                    {currentGroup.length > 0 ? (
-                      currentGroup.length === 1 ? (
-                        <span className="inline-block text-gray-900 text-xl sm:text-3xl font-bold px-5 py-2 rounded-2xl shadow-2xl truncate max-w-full"
-                              style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
-                          現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
-                          <span className="ml-2 text-gray-700 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
-                        </span>
+                    <div className="relative inline-block max-w-full" style={{ transform: displayLayout['current-runner'] ? `translate(${displayLayout['current-runner'].dx}px, ${displayLayout['current-runner'].dy}px)` : undefined }}>
+                      {adminUnlocked && (
+                        <span onPointerDown={e => startCapsuleDrag('current-runner', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
+                      )}
+                      {currentGroup.length > 0 ? (
+                        currentGroup.length === 1 ? (
+                          <span className="inline-block text-gray-900 text-xl sm:text-3xl font-bold px-5 py-2 rounded-2xl shadow-2xl truncate max-w-full"
+                                style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                            現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
+                            <span className="ml-2 text-gray-700 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
+                          </span>
+                        ) : (
+                          <div className="flex flex-col gap-1 items-center">
+                            {currentGroup.map(g => {
+                              const cnt = getRunnerLaps(g.name).length
+                              return (
+                                <span key={g.token || g.name}
+                                      className="inline-block text-gray-900 text-base sm:text-xl font-bold px-4 py-1 rounded-2xl shadow-2xl"
+                                      style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                                  現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
+                                  <span className="ml-2 text-gray-700 text-sm sm:text-base">個人第 {cnt} 圈</span>
+                                </span>
+                              )
+                            })}
+                          </div>
+                        )
                       ) : (
-                        <div className="flex flex-col gap-1 items-center">
-                          {currentGroup.map(g => {
-                            const cnt = getRunnerLaps(g.name).length
-                            return (
-                              <span key={g.token || g.name}
-                                    className="inline-block text-gray-900 text-base sm:text-xl font-bold px-4 py-1 rounded-2xl shadow-2xl"
-                                    style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
-                                現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
-                                <span className="ml-2 text-gray-700 text-sm sm:text-base">個人第 {cnt} 圈</span>
-                              </span>
-                            )
-                          })}
-                        </div>
-                      )
-                    ) : (
-                      <span className="inline-block text-gray-800 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] px-5 py-2 rounded-2xl shadow-2xl"
-                            style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>請選擇跑者</span>
-                    )}
+                        <span className="inline-block text-gray-800 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] px-5 py-2 rounded-2xl shadow-2xl"
+                              style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>請選擇跑者</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     {isFullscreen && (
                         <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl hover:bg-white flex items-center justify-center transition-colors shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}><Users className="w-5 h-5 text-gray-800" /></button>
                     )}
-                    <div className="rounded-2xl px-4 py-2 shadow-2xl text-right" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                    <div className="relative rounded-2xl px-4 py-2 shadow-2xl text-right" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)', transform: displayLayout['current-time'] ? `translate(${displayLayout['current-time'].dx}px, ${displayLayout['current-time'].dy}px)` : undefined }}>
+                      {adminUnlocked && (
+                        <span onPointerDown={e => startCapsuleDrag('current-time', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
+                      )}
                       <div className="text-sm text-gray-700 font-semibold">目前時間</div>
                       <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent }}>{currentTime}</div>
                     </div>
@@ -1693,27 +1748,37 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               {/* ══ 核心展示：目前總圈數文字 → 超大總圈數數字 ══ */}
               <div className="relative flex-1 flex flex-col items-center px-4 sm:px-8 pt-2 sm:pt-4 min-h-0">
                 {/* 中：目前總圈數標籤 */}
-                <span className="inline-block text-gray-900 text-lg sm:text-2xl font-bold shrink-0 px-5 py-1.5 rounded-2xl shadow-2xl"
-                     style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
-                  目前總圈數
-                </span>
+                <div className="relative inline-block" style={{ transform: displayLayout['total-laps-label'] ? `translate(${displayLayout['total-laps-label'].dx}px, ${displayLayout['total-laps-label'].dy}px)` : undefined }}>
+                  {adminUnlocked && (
+                    <span onPointerDown={e => startCapsuleDrag('total-laps-label', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
+                  )}
+                  <span className="inline-block text-gray-900 text-lg sm:text-2xl font-bold shrink-0 px-5 py-1.5 rounded-2xl shadow-2xl"
+                       style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                    目前總圈數
+                  </span>
+                </div>
                 {/* 下：超大總圈數數字（佔滿剩餘空間約 90%） */}
                 <div className="flex-1 w-full flex items-center justify-center min-h-0">
-                  <span className="font-black tabular-nums leading-none"
-                        style={{
-                          color: skin.displayAccent,
-                          fontSize: 'clamp(6rem, 72vh, 36rem)',
-                          lineHeight: 0.9,
-                          // 白色粗描邊 + 外層黑色柔和陰影做深度
-                          textShadow: [
-                            '-5px -5px 0 #fff', '5px -5px 0 #fff', '-5px 5px 0 #fff', '5px 5px 0 #fff',
-                            '-5px 0 0 #fff', '5px 0 0 #fff', '0 -5px 0 #fff', '0 5px 0 #fff',
-                            '0 10px 28px rgba(0,0,0,0.35)',
-                            '0 0 48px rgba(255,255,255,0.6)',
-                          ].join(', '),
-                        }}>
-                    {totalLaps}
-                  </span>
+                  <div className="relative inline-block" style={{ transform: displayLayout['total-laps-number'] ? `translate(${displayLayout['total-laps-number'].dx}px, ${displayLayout['total-laps-number'].dy}px)` : undefined }}>
+                    {adminUnlocked && (
+                      <span onPointerDown={e => startCapsuleDrag('total-laps-number', e)} className="hidden sm:flex absolute top-2 left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-10" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
+                    )}
+                    <span className="font-black tabular-nums leading-none"
+                          style={{
+                            color: skin.displayAccent,
+                            fontSize: 'clamp(6rem, 72vh, 36rem)',
+                            lineHeight: 0.9,
+                            // 白色粗描邊 + 外層黑色柔和陰影做深度
+                            textShadow: [
+                              '-5px -5px 0 #fff', '5px -5px 0 #fff', '-5px 5px 0 #fff', '5px 5px 0 #fff',
+                              '-5px 0 0 #fff', '5px 0 0 #fff', '0 -5px 0 #fff', '0 5px 0 #fff',
+                              '0 10px 28px rgba(0,0,0,0.35)',
+                              '0 0 48px rgba(255,255,255,0.6)',
+                            ].join(', '),
+                          }}>
+                      {totalLaps}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1728,8 +1793,13 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               {/* ══ 手機版右側遮罩 ══ */}
               {displayRightOpen && <div className="sm:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setDisplayRightOpen(false)} />}
 
-              {/* 右下側欄：記圈膠囊 + 跑者順序膠囊（上下並排、等寬） */}
-              <div className={`absolute bottom-4 right-4 z-40 w-[280px] flex flex-col gap-3 transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
+              {/* 右下側欄外層：負責手機 slide-in，桌機無效 */}
+              <div className={`absolute bottom-4 right-4 z-40 w-[280px] transition-transform duration-300 sm:translate-x-0 ${displayRightOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)] sm:translate-x-0'}`}>
+              {/* 內層：負責管理員 drag offset（加把手） */}
+              <div className="relative flex flex-col gap-3" style={{ transform: displayLayout['side-panel'] ? `translate(${displayLayout['side-panel'].dx}px, ${displayLayout['side-panel'].dy}px)` : undefined }}>
+                {adminUnlocked && (
+                  <span onPointerDown={e => startCapsuleDrag('side-panel', e)} className="hidden sm:flex absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gray-800 text-white items-center justify-center shadow-lg z-50" style={{ cursor: 'grab', touchAction: 'none' }} title="拖曳移動"><GripVertical className="w-3 h-3" /></span>
+                )}
                 {adminUnlocked && (
                   <div className="rounded-3xl p-3 shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                     <div className="flex flex-col gap-2">
@@ -1901,6 +1971,7 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     </div>
                   </div>
                 )}
+              </div>
               </div>
               </div>
             </div>
