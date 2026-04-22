@@ -266,6 +266,11 @@ export default function LoveRunTracker() {
   const [adminGridSlots, setAdminGridSlots] = useState([])     // 暫存修改中的時段
   const [adminViewMode, setAdminViewMode] = useState('person') // 'person' | 'slot'
 
+  // 查詢自己時段彈窗
+  const [queryToken, setQueryToken] = useState('')             // 查詢輸入
+  const [queryResult, setQueryResult] = useState(null)         // 查詢結果記錄
+  const [queryError, setQueryError] = useState('')             // 查詢錯誤訊息
+
   const audioRef = useRef(null)
   const displayRef = useRef(null)
 
@@ -765,6 +770,70 @@ export default function LoveRunTracker() {
     a.download = `${eventName}_報名_${new Date().toISOString().split('T')[0]}.csv`; a.click()
   }
 
+  // 產生通知單：每人一張，瀏覽器列印（可直接印或存 PDF）
+  const printNotices = () => {
+    if (signups.length === 0) { alert('目前沒有任何登記資料'); return }
+    const sorted = [...signups].sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'))
+    const dateText = eventDate || ''
+    const escapeHtml = (str) => String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
+    const cards = sorted.map(s => {
+      const slots = [...s.slots].sort()
+      const slotsHtml = slots.length
+        ? slots.map(t => `<span class="slot">${escapeHtml(t)}</span>`).join('')
+        : '<span class="no-slot">（未選擇時段）</span>'
+      return `
+        <section class="notice">
+          <header>
+            <div class="title">${escapeHtml(eventName)} 報名通知單</div>
+            ${dateText ? `<div class="date">活動日期：${escapeHtml(dateText)}</div>` : ''}
+          </header>
+          <div class="row">
+            <div class="label">姓名</div>
+            <div class="name">${escapeHtml(s.name)}</div>
+          </div>
+          <div class="row">
+            <div class="label">修改碼</div>
+            <div class="token">${escapeHtml(s.token)}</div>
+          </div>
+          <div class="row slots-row">
+            <div class="label">登記時段（共 ${slots.length} 個）</div>
+            <div class="slots">${slotsHtml}</div>
+          </div>
+          <footer class="tips">
+            <div>※ 請於登記時段前至活動現場報到。</div>
+            <div>※ 如需修改時段，請於活動前使用修改碼至報名頁面更新。</div>
+          </footer>
+        </section>`
+    }).join('')
+    const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>${escapeHtml(eventName)} 通知單</title>
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif; margin: 0; color: #222; }
+  .notice { page-break-after: always; padding: 20mm 15mm; border: 2px dashed #bbb; border-radius: 10px; margin-bottom: 10mm; min-height: 240mm; display: flex; flex-direction: column; }
+  .notice:last-child { page-break-after: auto; }
+  header { text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 10mm; margin-bottom: 10mm; }
+  .title { font-size: 28pt; font-weight: 900; color: #1e40af; letter-spacing: 2px; }
+  .date { font-size: 14pt; color: #555; margin-top: 4mm; }
+  .row { margin-bottom: 8mm; }
+  .label { font-size: 11pt; color: #888; margin-bottom: 2mm; }
+  .name { font-size: 32pt; font-weight: 900; color: #111; letter-spacing: 4px; }
+  .token { font-family: ui-monospace, "Courier New", monospace; font-size: 36pt; font-weight: 900; color: #2563eb; letter-spacing: 8px; background: #eff6ff; padding: 6mm 10mm; border: 2px solid #bfdbfe; border-radius: 6mm; display: inline-block; }
+  .slots-row { flex: 1; }
+  .slots { display: flex; flex-wrap: wrap; gap: 3mm; margin-top: 3mm; }
+  .slot { font-family: ui-monospace, "Courier New", monospace; font-size: 14pt; font-weight: 700; background: #2563eb; color: #fff; padding: 3mm 5mm; border-radius: 20mm; }
+  .no-slot { color: #aaa; font-size: 12pt; }
+  .tips { margin-top: auto; font-size: 10pt; color: #666; border-top: 1px dashed #ccc; padding-top: 5mm; line-height: 1.8; }
+  @media print { .notice { border: none; padding: 0; min-height: auto; } }
+</style></head><body>${cards}
+<script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
+</body></html>`
+    const w = window.open('', '_blank')
+    if (!w) { alert('無法開啟新視窗，請允許彈出視窗'); return }
+    w.document.write(html)
+    w.document.close()
+  }
+
   // ══════════════════════════════
   // 全螢幕
   // ══════════════════════════════
@@ -959,21 +1028,38 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                   {/* 已有登記可查詢 */}
                   {signups.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-dashed">
-                      <p className="text-xs text-gray-400 mb-2">已有登記，不用輸入姓名，直接輸入修改碼：</p>
-                      <input
-                        type="text"
-                        placeholder="修改碼（4碼）"
-                        maxLength={8}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            const t = e.target.value.trim().toUpperCase()
+                      <p className="text-xs text-gray-400 mb-2">已有登記，直接輸入修改碼查詢或修改：</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={queryToken}
+                          onChange={e => { setQueryToken(e.target.value.toUpperCase()); setQueryError('') }}
+                          placeholder="修改碼（4碼）"
+                          maxLength={8}
+                          className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 font-mono uppercase"
+                        />
+                        <button
+                          onClick={() => {
+                            const t = queryToken.trim().toUpperCase()
                             const rec = signups.find(s => s.token === t)
-                            if (rec) { setEditToken(t); setEditRecord(rec); setSignupNameInput(rec.name); setSignupSelectedSlots([...rec.slots]); setSignupStep('grid') }
-                            else alert('找不到此修改碼')
-                          }
-                        }}
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 font-mono uppercase"
-                      />
+                            if (rec) { setQueryResult(rec); setQueryError('') }
+                            else setQueryError('找不到此修改碼')
+                          }}
+                          className="shrink-0 bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600"
+                        >查詢</button>
+                        <button
+                          onClick={() => {
+                            const t = queryToken.trim().toUpperCase()
+                            const rec = signups.find(s => s.token === t)
+                            if (rec) { setEditToken(t); setEditRecord(rec); setSignupNameInput(rec.name); setSignupSelectedSlots([...rec.slots]); setSignupStep('grid'); setQueryToken(''); setQueryError('') }
+                            else setQueryError('找不到此修改碼')
+                          }}
+                          className="shrink-0 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-gray-200"
+                        >修改</button>
+                      </div>
+                      {queryError && (
+                        <p className="text-xs text-red-500 mt-2">{queryError}</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2007,7 +2093,10 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                     >依時段</button>
                   </div>
                 </div>
-                <button onClick={exportSignups} className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-200 flex items-center gap-1"><FileDown className="w-3 h-3" /> 匯出</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={printNotices} className="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 flex items-center gap-1"><ClipboardSignature className="w-3 h-3" /> 列印通知單</button>
+                  <button onClick={exportSignups} className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-200 flex items-center gap-1"><FileDown className="w-3 h-3" /> 匯出</button>
+                </div>
               </div>
 
               {signups.length === 0 ? <p className="text-gray-400 text-sm">尚無登記</p> : (
@@ -2320,6 +2409,55 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
           </div>
         )}
       </main>
+
+      {/* 查詢時段結果彈窗 */}
+      {queryResult && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setQueryResult(null); setQueryToken('') }}/>
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-bounce-in">
+            <button
+              onClick={() => { setQueryResult(null); setQueryToken('') }}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+            ><X className="w-5 h-5" /></button>
+            <div className="text-center mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-lg"><ClipboardSignature className="w-7 h-7 text-white" /></div>
+              <h3 className="text-lg font-bold text-gray-800">您的登記資訊</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="bg-gray-50 rounded-xl p-3">
+                <div className="text-xs text-gray-400 mb-1">姓名</div>
+                <div className="font-bold text-gray-800 text-lg">{queryResult.name}</div>
+              </div>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3">
+                <div className="text-xs text-blue-500 mb-1">修改碼</div>
+                <div className="font-mono font-black text-blue-600 text-xl tracking-[0.2em]">{queryResult.token}</div>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3">
+                <div className="text-xs text-gray-400 mb-2">已登記時段（{queryResult.slots.length} 個）</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[...queryResult.slots].sort().map(s => (
+                    <span key={s} className="bg-blue-500 text-white text-xs px-2.5 py-1 rounded-full font-mono font-semibold">{s}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => { setQueryResult(null); setQueryToken('') }}
+                className="flex-1 btn-secondary"
+              >關閉</button>
+              <button
+                onClick={() => {
+                  const rec = queryResult
+                  setEditToken(rec.token); setEditRecord(rec); setSignupNameInput(rec.name); setSignupSelectedSlots([...rec.slots]); setSignupStep('grid')
+                  setQueryResult(null); setQueryToken('')
+                }}
+                className={`flex-1 bg-gradient-to-r ${skin.btnGrad} text-white py-2.5 rounded-xl font-bold shadow`}
+              >修改</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 確認對話框 */}
       {confirmDialog && (
