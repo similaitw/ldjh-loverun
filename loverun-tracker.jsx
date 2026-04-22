@@ -1676,7 +1676,8 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
             <div ref={displayRef} className={`rounded-2xl text-white overflow-hidden shadow-2xl relative flex flex-col ${isFullscreen ? 'display-force-landscape fixed inset-0 z-50 rounded-none overflow-y-auto' : ''}`}
               style={{
                 background: skin.displayBg,
-                backgroundImage: `url("/img/bg (${displayBgIndex}).png")`,
+                // 疊一層白色半透明把背景刷淡，避免花草雲朵與圈數競爭視覺
+                backgroundImage: `linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)), url("/img/bg (${displayBgIndex}).png")`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
