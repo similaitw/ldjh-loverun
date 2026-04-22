@@ -1613,9 +1613,9 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
               <div className="relative px-4 sm:px-8 pt-2 pb-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}><Activity className="w-7 h-7 sm:w-8 sm:h-8 text-white" /></div>
-                    <div className="rounded-2xl px-4 py-2 shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
-                      <div className="text-sm text-white font-semibold">已進行時間</div>
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}><Activity className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: skin.displayAccent }} /></div>
+                    <div className="rounded-2xl px-4 py-2 shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
+                      <div className="text-sm text-gray-700 font-semibold">已進行時間</div>
                       <div className="text-xl sm:text-2xl font-black tabular-nums" style={{ color: skin.displayAccent }}>
                         {timerRunning ? elapsedTimeDisplay : '00:00:00'}
                       </div>
@@ -1623,24 +1623,24 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                   </div>
                   <div className="flex items-center gap-3">
                     {isFullscreen && (
-                        <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl hover:bg-black/90 flex items-center justify-center transition-colors shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}><Users className="w-5 h-5 text-white" /></button>
+                        <button onClick={() => setDisplayDrawerOpen(true)} className="w-10 h-10 rounded-xl hover:bg-white flex items-center justify-center transition-colors shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}><Users className="w-5 h-5 text-gray-800" /></button>
                     )}
                     <div className="text-right">
                       <div className="flex items-center gap-2 mb-1 justify-end">
-                        <div className="text-sm text-white font-semibold px-2 py-0.5 rounded shadow-lg" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>目前時間</div>
+                        <div className="text-sm text-gray-700 font-semibold px-2 py-0.5 rounded shadow-lg" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>目前時間</div>
                         <button
                           onClick={() => setClockDisplayMode(clockDisplayMode === 'digital' ? 'analog' : 'digital')}
-                          className="w-6 h-6 rounded-lg hover:bg-black/90 flex items-center justify-center text-xs transition-colors shadow-lg"
-                          style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}
+                          className="w-6 h-6 rounded-lg hover:bg-white flex items-center justify-center text-xs transition-colors shadow-lg"
+                          style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}
                           title={clockDisplayMode === 'digital' ? '切換到圓形時鐘' : '切換到數字時鐘'}
                         >
-                            {clockDisplayMode === 'digital' ? <Clock className="w-4 h-4 text-white" /> : <Watch className="w-4 h-4 text-white" />}
+                            {clockDisplayMode === 'digital' ? <Clock className="w-4 h-4 text-gray-800" /> : <Watch className="w-4 h-4 text-gray-800" />}
                         </button>
                       </div>
                       {clockDisplayMode === 'digital' ? (
-                        <div className="text-2xl sm:text-4xl font-mono font-black tabular-nums text-white inline-block px-3 py-1 rounded-xl shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>{currentTime}</div>
+                        <div className="text-2xl sm:text-4xl font-mono font-black tabular-nums text-gray-900 inline-block px-3 py-1 rounded-xl shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>{currentTime}</div>
                       ) : (
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto shadow-2xl" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto shadow-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                           <AnalogClock time={currentTime} />
                         </div>
                       )}
@@ -1655,10 +1655,10 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                 <div className="w-full text-center shrink-0">
                   {currentGroup.length > 0 ? (
                     currentGroup.length === 1 ? (
-                      <span className="inline-block text-white text-xl sm:text-3xl font-bold px-5 py-2 rounded-2xl shadow-2xl"
-                           style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
+                      <span className="inline-block text-gray-900 text-xl sm:text-3xl font-bold px-5 py-2 rounded-2xl shadow-2xl"
+                           style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                         現在跑者 - <span style={{ color: skin.displayAccent }}>{currentGroup[0].name}</span>
-                        <span className="ml-2 text-white text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
+                        <span className="ml-2 text-gray-700 text-base sm:text-2xl">（個人第 {getRunnerLaps(currentGroup[0].name).length} 圈）</span>
                       </span>
                     ) : (
                       <div className="flex flex-col gap-1 sm:gap-2 items-center">
@@ -1666,23 +1666,23 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                           const cnt = getRunnerLaps(g.name).length
                           return (
                             <span key={g.token || g.name}
-                                 className="inline-block text-white text-lg sm:text-2xl font-bold px-5 py-1.5 rounded-2xl shadow-2xl"
-                                 style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
+                                 className="inline-block text-gray-900 text-lg sm:text-2xl font-bold px-5 py-1.5 rounded-2xl shadow-2xl"
+                                 style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                               現在跑者 - <span style={{ color: skin.displayAccent }}>{g.name}</span>
-                              <span className="ml-2 text-white text-sm sm:text-base">個人第 {cnt} 圈</span>
+                              <span className="ml-2 text-gray-700 text-sm sm:text-base">個人第 {cnt} 圈</span>
                             </span>
                           )
                         })}
                       </div>
                     )
                   ) : (
-                    <span className="inline-block text-white text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] px-5 py-2 rounded-2xl shadow-2xl"
-                         style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>請選擇跑者</span>
+                    <span className="inline-block text-gray-800 text-lg sm:text-2xl font-bold uppercase tracking-[0.3em] px-5 py-2 rounded-2xl shadow-2xl"
+                         style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>請選擇跑者</span>
                   )}
                 </div>
                 {/* 中：目前總圈數標籤 */}
-                <span className="inline-block text-white text-lg sm:text-2xl font-bold mt-2 sm:mt-3 shrink-0 px-5 py-1.5 rounded-2xl shadow-2xl"
-                     style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid rgba(255,255,255,0.4)' }}>
+                <span className="inline-block text-gray-900 text-lg sm:text-2xl font-bold mt-2 sm:mt-3 shrink-0 px-5 py-1.5 rounded-2xl shadow-2xl"
+                     style={{ background: 'rgba(255,255,255,0.92)', border: '2px solid rgba(0,0,0,0.15)' }}>
                   目前總圈數
                 </span>
                 {/* 下：超大總圈數數字（佔滿剩餘空間約 90%） */}
@@ -1692,12 +1692,12 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
                           color: skin.displayAccent,
                           fontSize: 'clamp(6rem, 72vh, 36rem)',
                           lineHeight: 0.9,
-                          // 多層黑影模擬粗描邊（比 WebkitTextStroke 更穩定）
+                          // 白色粗描邊 + 外層黑色柔和陰影做深度
                           textShadow: [
-                            '-4px -4px 0 #000', '4px -4px 0 #000', '-4px 4px 0 #000', '4px 4px 0 #000',
-                            '-4px 0 0 #000', '4px 0 0 #000', '0 -4px 0 #000', '0 4px 0 #000',
-                            '0 8px 24px rgba(0,0,0,0.9)',
-                            `0 0 40px ${skin.displayAccent}60`,
+                            '-5px -5px 0 #fff', '5px -5px 0 #fff', '-5px 5px 0 #fff', '5px 5px 0 #fff',
+                            '-5px 0 0 #fff', '5px 0 0 #fff', '0 -5px 0 #fff', '0 5px 0 #fff',
+                            '0 10px 28px rgba(0,0,0,0.35)',
+                            '0 0 48px rgba(255,255,255,0.6)',
                           ].join(', '),
                         }}>
                     {totalLaps}
