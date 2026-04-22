@@ -874,6 +874,29 @@ export default function LoveRunTracker() {
     return () => document.removeEventListener('fullscreenchange', h)
   }, [])
 
+  // 非管理員進入展示頁：首次使用者互動時自動切全螢幕
+  useEffect(() => {
+    if (activeTab !== 'display') return
+    if (adminUnlocked) return
+    if (document.fullscreenElement) return
+    const trigger = () => {
+      if (!document.fullscreenElement && displayRef.current) {
+        displayRef.current.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {})
+      }
+      window.removeEventListener('click', trigger)
+      window.removeEventListener('touchstart', trigger)
+      window.removeEventListener('keydown', trigger)
+    }
+    window.addEventListener('click', trigger, { once: true })
+    window.addEventListener('touchstart', trigger, { once: true })
+    window.addEventListener('keydown', trigger, { once: true })
+    return () => {
+      window.removeEventListener('click', trigger)
+      window.removeEventListener('touchstart', trigger)
+      window.removeEventListener('keydown', trigger)
+    }
+  }, [activeTab, adminUnlocked])
+
   // ══════════════════════════════
   // 衍生資料
   // ══════════════════════════════
@@ -1449,9 +1472,13 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
             <div className="flex flex-wrap justify-between items-center gap-2">
               <h2 className="font-bold text-gray-700 text-lg">展示 & 圈數記錄</h2>
               <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setDisplayDrawerOpen(true)} className="bg-violet-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-violet-700 font-semibold shadow flex items-center gap-1.5"><Users className="w-4 h-4" /> 個人統計</button>
-                  <button onClick={() => { setEditLapRunner(displayRunner || allRunners[0] || ''); setShowEditLapModal(true) }} className="bg-yellow-500 text-white px-4 py-2 rounded-xl text-sm hover:bg-yellow-600 font-semibold shadow flex items-center gap-1.5"><Settings className="w-4 h-4" /> 手動修改</button>
-                  <button onClick={exportDisplayLaps} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-semibold shadow flex items-center gap-1.5"><FileDown className="w-4 h-4" /> 匯出</button>
+                  {adminUnlocked && (
+                    <>
+                      <button onClick={() => setDisplayDrawerOpen(true)} className="bg-violet-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-violet-700 font-semibold shadow flex items-center gap-1.5"><Users className="w-4 h-4" /> 個人統計</button>
+                      <button onClick={() => { setEditLapRunner(displayRunner || allRunners[0] || ''); setShowEditLapModal(true) }} className="bg-yellow-500 text-white px-4 py-2 rounded-xl text-sm hover:bg-yellow-600 font-semibold shadow flex items-center gap-1.5"><Settings className="w-4 h-4" /> 手動修改</button>
+                      <button onClick={exportDisplayLaps} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 font-semibold shadow flex items-center gap-1.5"><FileDown className="w-4 h-4" /> 匯出</button>
+                    </>
+                  )}
                   <button onClick={toggleFullscreen} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 font-semibold shadow flex items-center gap-1.5">
                     {isFullscreen ? '退出' : <><Monitor className="w-4 h-4" /> 全螢幕</>}
                   </button>
