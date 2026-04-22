@@ -2123,23 +2123,43 @@ const ICON_MAP = { period: null, free: null, break: Coffee, meal: Utensils, rest
 
               {signups.length === 0 ? <p className="text-gray-400 text-sm">尚無登記</p> : (
                 <>
-                  {/* ── 依人名（每個時段獨立一列，按時段排序） ── */}
+                  {/* ── 依人名（按時段排序，每時段每人一列，空時段顯示「無人登記」） ── */}
                   {adminViewMode === 'person' && (() => {
-                    const rows = []
+                    // 先收集有登記的人（依時段展開）與沒登記者（時段為 null）
+                    const signupRows = []
                     signups.forEach(s => {
-                      if (s.slots.length === 0) { rows.push({ s, slot: null }); return }
-                      [...s.slots].sort().forEach(slot => rows.push({ s, slot }))
+                      if (s.slots.length === 0) { signupRows.push({ s, slot: null }); return }
+                      [...s.slots].sort().forEach(slot => signupRows.push({ s, slot }))
                     })
-                    rows.sort((a, b) => {
-                      const ea = a.slot || '99:99'
-                      const eb = b.slot || '99:99'
-                      if (ea !== eb) return ea.localeCompare(eb)
-                      return a.s.name.localeCompare(b.s.name, 'zh-TW')
+                    // 以時段分群
+                    const bySlot = new Map()
+                    signupRows.forEach(r => {
+                      if (r.slot === null) return
+                      if (!bySlot.has(r.slot)) bySlot.set(r.slot, [])
+                      bySlot.get(r.slot).push(r.s)
                     })
+                    // 產生完整列：遍歷所有時段，有人列多筆、沒人列一筆空
+                    const rows = []
+                    TIME_SLOTS.forEach(slot => {
+                      const sgs = bySlot.get(slot) || []
+                      if (sgs.length === 0) { rows.push({ slot, s: null }); return }
+                      sgs.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'))
+                        .forEach(s => rows.push({ slot, s }))
+                    })
+                    // 未選時段的人放最後
+                    signupRows.filter(r => r.slot === null).forEach(r => rows.push({ slot: null, s: r.s }))
                     return (
                       <div className="divide-y border rounded-lg overflow-hidden">
                         {rows.map((r, idx) => {
                           const { s, slot } = r
+                          if (!s) {
+                            return (
+                              <div key={`empty-${slot}-${idx}`} className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 bg-gray-50">
+                                <div className="shrink-0 w-16 sm:w-20 font-mono text-sm text-gray-500 font-semibold text-center">{slot}</div>
+                                <span className="text-xs text-gray-400 italic">無人登記</span>
+                              </div>
+                            )
+                          }
                           return (
                             <div key={`${s.id}-${slot || 'none'}-${idx}`} className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-gray-50">
                               <div className="shrink-0 w-16 sm:w-20 font-mono text-sm text-gray-700 font-semibold text-center">{slot || '—'}</div>
